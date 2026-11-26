@@ -1,5 +1,12 @@
 "use client";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -14,12 +21,14 @@ export function RecordPagination({
   total,
   pageSize,
   onChange,
+  onPageSizeChange,
 }: {
   page: number;
   pages: number;
   total: number;
   pageSize: number;
   onChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
   if (!total) return null;
   const numbers = [...new Set([1, page - 1, page, page + 1, pages])]
@@ -34,6 +43,27 @@ export function RecordPagination({
   });
   return (
     <div className="space-y-3 print:hidden">
+      <div className="flex items-center justify-center gap-3">
+        <span className="text-sm text-muted-foreground">每頁筆數</span>
+        <Select
+          value={String(pageSize)}
+          onValueChange={(value) => {
+            const size = Number(value);
+            if ([10, 20, 50, 100].includes(size)) onPageSizeChange(size);
+          }}
+        >
+          <SelectTrigger aria-label="每頁筆數">
+            <SelectValue>{pageSize} 筆</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {[10, 20, 50, 100].map((size) => (
+              <SelectItem key={size} value={String(size)}>
+                {size} 筆
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <p className="text-center text-sm text-muted-foreground">
         第 {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} 筆，共{" "}
         {total} 筆

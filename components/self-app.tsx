@@ -95,6 +95,7 @@ export function SelfApp({
     reportDate ? new Date(`${reportDate}T12:00:00`) : new Date(),
   );
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [includeImages, setIncludeImages] = useState(false);
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -140,7 +141,6 @@ export function SelfApp({
       q: view === "appointment" ? "" : search,
     }).toString();
   }, [view, from, to, search, month]);
-  const pageSize = view === "dashboard" ? 6 : 20;
   const load = useCallback(async () => {
     activeRequest.current?.abort();
     const controller = new AbortController();
@@ -699,6 +699,10 @@ export function SelfApp({
                 total={total}
                 pageSize={pageSize}
                 onChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
               />
             )}
           </>

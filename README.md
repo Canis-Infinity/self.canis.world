@@ -138,7 +138,7 @@ UI 測試可使用獨立暫存 MongoDB：在 backend 設定 `SELF_E2E=1` 後執�
 
 PDF 匯出需先部署 backend 最新版本，執行 `docker compose up -d --build --force-recreate` 安裝 Chromium 與繁體中文字型；再更新 self。PDF API 需登入，僅可讀取本人附件，不連線至外部網站，報表不落地保存。
 
-- 總覽最近紀錄每頁 6 筆，各類紀錄及回診摘要每頁 20 筆，使用原生 shadcn/ui Pagination 與後端篩選。統計涵蓋完整區間；PDF／JSON／列印會在確認匯出時讀取完整篩選結果。月曆只取畫面日期範圍，CRUD 保留月份。
+- 總覽、各類紀錄與回診摘要預設每頁 10 筆，可選 10／20／50／100 筆，切換時回到第一頁，使用原生 shadcn/ui Pagination 與後端篩選。統計涵蓋完整區間；PDF／JSON／列印會在確認匯出時讀取完整篩選結果。月曆只取畫面日期範圍，CRUD 保留月份。
 - 一般紀錄標題固定、不顯示標題欄位；新回診預設「身心科回診」。新增飲食紀錄：餐別（早餐／午餐／晚餐／點心／飲料）、吃了或喝了什麼、食慾、備註與選填圖片；舊飲料欄位內容保留。
 - 心情與食慾使用原生 Base UI Slider（表單維持原生主題樣式、兩端只顯示文字），皆為 1–10 整數（min=1、max=10、step=1，新紀錄預設 5 分）；卡片以紅色 #9F0712（1 分）至綠色 #016630（10 分）標示。平均值可包含小數，單筆紀錄不可。
 - 舊心情資料需在 backend 執行 `node scripts/migrate-self-moods.js`；Docker：`docker exec backend_canis_world node scripts/migrate-self-moods.js`。1/2/3/4/5 轉成 1/3/6/8/10，保留原分數、日期、內容與附件，可安全重跑。
