@@ -39,7 +39,8 @@ import {
   categories,
   medicationPeriods,
   appointmentSessions,
-  moods,
+  moodScore,
+  meals,
   metrics,
   units,
   type Entry,
@@ -72,10 +73,17 @@ export function EntryEditor({
   );
   const [data, setData] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      Object.entries(record?.data || {}).map(([k, v]) => [k, String(v)]),
+      Object.entries(
+        record?.kind === "mood"
+          ? { ...record.data, score: moodScore(record.data) }
+          : record?.data || {},
+      ).map(([k, v]) => [k, String(v)]),
     ),
   );
-  const [title, setTitle] = useState(record?.title || categories[kind].label);
+  const [title, setTitle] = useState(
+    record?.title ||
+      (kind === "appointment" ? "身心科回診" : categories[kind].label),
+  );
   const [note, setNote] = useState(record?.note || "");
   const [images, setImages] = useState(record?.images || []);
   const [files, setFiles] = useState<File[]>([]);
@@ -115,6 +123,28 @@ export function EntryEditor({
         ) : (
           <Input {...props} type={opts.type || "text"} step="any" />
         )}
+      </div>
+    );
+  }
+  function tenPoint(key: string, label: string, low: string, high: string) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={key}>{label} *</Label>
+        <Input
+          id={key}
+          type="number"
+          min={1}
+          max={10}
+          step={1}
+          inputMode="numeric"
+          required
+          value={data[key] || ""}
+          onChange={(e) => set(key, e.target.value)}
+          aria-describedby={`${key}-hint`}
+        />
+        <p id={`${key}-hint`} className="text-sm text-muted-foreground">
+          1：{low} · 10：{high}
+        </p>
       </div>
     );
   }
@@ -168,8 +198,22 @@ export function EntryEditor({
         case "mood":
           values = {
             score: Number(data.score),
+            scale: 10,
+            ...(record?.kind === "mood" && {
+              legacyScore:
+                record.data.legacyScore ??
+                (record.data.scale !== 10 ? record.data.score : undefined),
+            }),
             emotions: data.emotions || "",
             trigger: data.trigger || "",
+          };
+          break;
+        case "diet":
+          values = {
+            meal: data.meal,
+            food: data.food || "",
+            drinks: data.drinks || "",
+            appetite: Number(data.appetite),
           };
           break;
         case "sleep":
@@ -213,7 +257,7 @@ export function EntryEditor({
       const parsed = entry.safeParse(
         {
           kind,
-          title,
+          title: kind === "appointment" ? title : categories[kind].label,
           occurredAt: (kind === "appointment"
             ? new Date(date.getFullYear(), date.getMonth(), date.getDate())
             : date
@@ -286,16 +330,18 @@ export function EntryEditor({
         <Toaster toastManager={formToast}>
           <form className="space-y-6" onSubmit={save} noValidate>
             <fieldset disabled={busy} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="entry-title">標題 *</Label>
-                <Input
-                  id="entry-title"
-                  required
-                  maxLength={120}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
+              {kind === "appointment" && (
+                <div className="space-y-2">
+                  <Label htmlFor="entry-title">標題 *</Label>
+                  <Input
+                    id="entry-title"
+                    required
+                    maxLength={120}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+              )}
               <DateTimeField
                 label={kind === "appointment" ? "回診日期" : "紀錄日期與時間"}
                 value={date}
@@ -304,7 +350,7 @@ export function EntryEditor({
               />
               {kind === "mood" && (
                 <>
-                  {score("score", "此刻心情", moods)}
+                  {tenPoint("score", "此刻心情", "很低落", "很好")}
                   {field("emotions", "感受關鍵字", {
                     placeholder: "例如：焦慮、安心、疲憊",
                     max: 200,
@@ -396,6 +442,17 @@ export function EntryEditor({
                     placeholder: "例如：服用後約一小時覺得頭暈",
                     max: 2000,
                   })}
+                </>
+              )}
+              {kind === "diet" && (
+                <>
+                  {radio("meal", "餐別", meals)}
+                  {field("food", "吃了什麼", { multiline: true, max: 3000 })}
+                  {field("drinks", "飲料", {
+                    max: 1000,
+                    placeholder: "例如：水、無糖茶、咖啡",
+                  })}
+                  {tenPoint("appetite", "食慾", "沒有食慾", "食慾旺盛")}
                 </>
               )}
               {kind === "reflection" && (

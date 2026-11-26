@@ -8,7 +8,8 @@ export type SkeletonView =
   | "sleep"
   | "body"
   | "medication"
-  | "reflection";
+  | "reflection"
+  | "diet";
 export function ContentSkeleton({
   view = "dashboard",
   heading = false,
@@ -212,6 +213,14 @@ function RecordSkeleton({ kind }: { kind: string }) {
             <Skeleton className="h-4 w-1/2" />
           </>
         )}
+        {kind === "diet" && (
+          <>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-20 w-24 rounded-lg" />
+          </>
+        )}
         {kind === "reflection" && (
           <div className="space-y-3">
             {["w-full", "w-5/6", "w-full", "w-2/3"].map((width, i) => (
@@ -241,15 +250,17 @@ function ReportSkeleton() {
       </div>
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-9 w-36" />
-      {["mood", "sleep", "body", "medication", "reflection"].map((kind) => (
-        <section key={kind} className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-6 w-28" />
-            <Skeleton className="h-4 w-12" />
-          </div>
-          <RecordSkeleton kind={kind} />
-        </section>
-      ))}
+      {["mood", "sleep", "body", "medication", "reflection", "diet"].map(
+        (kind) => (
+          <section key={kind} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-6 w-28" />
+              <Skeleton className="h-4 w-12" />
+            </div>
+            <RecordSkeleton kind={kind} />
+          </section>
+        ),
+      )}
     </div>
   );
 }

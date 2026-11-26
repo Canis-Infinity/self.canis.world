@@ -30,12 +30,12 @@ export async function api<T>(
     );
   return body;
 }
-export async function getEntries(signal?: AbortSignal) {
+export async function getEntries(signal?: AbortSignal, params = "") {
   const records: Entry[] = [];
   let pages = 1;
   for (let page = 1; page <= pages; page++) {
     const result = await api<{ entries: Entry[]; pages: number }>(
-      `/entries?page=${page}`,
+      `/entries?${params}&limit=100&page=${page}`,
       { signal },
     );
     records.push(...result.entries);

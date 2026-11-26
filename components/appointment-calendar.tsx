@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,17 +12,18 @@ import {
 import { dayKey, appointmentSessions, type Entry } from "@/lib/records";
 import { cn } from "@/lib/utils";
 export function AppointmentCalendar({
+  month,
+  setMonth,
   appointments,
   onCreate,
   onEdit,
 }: {
+  month: Date;
+  setMonth: (month: Date) => void;
   appointments: Entry[];
   onCreate: (date: Date) => void;
   onEdit: (record: Entry) => void;
 }) {
-  const [month, setMonth] = useState(
-    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-  );
   const today = dayKey(new Date());
   const start = new Date(month);
   start.setDate(1 - start.getDay());

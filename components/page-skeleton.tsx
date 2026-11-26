@@ -45,7 +45,14 @@ export function PageSkeleton() {
       ? "appointment"
       : pathname === "/report"
         ? "report"
-        : ["mood", "sleep", "body", "medication", "reflection"].includes(kind)
+        : [
+              "mood",
+              "sleep",
+              "body",
+              "medication",
+              "reflection",
+              "diet",
+            ].includes(kind)
           ? (kind as SkeletonView)
           : "dashboard";
   return (

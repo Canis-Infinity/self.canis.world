@@ -19,6 +19,9 @@ import { dayKey, type Entry } from "@/lib/records";
 
 export function ReportExport({
   records,
+  total,
+  prepare,
+  onFinish,
   name,
   from,
   to,
@@ -28,6 +31,9 @@ export function ReportExport({
   disabled,
 }: {
   records: Entry[];
+  total: number;
+  prepare: () => Promise<Entry[]>;
+  onFinish: () => void;
   name: string;
   from: Date;
   to: Date;
@@ -62,6 +68,7 @@ export function ReportExport({
     setBusy(true);
     setDownload(null);
     try {
+      const completeRecords = await prepare();
       if (format === "print" && !mobile) {
         if (includeImages)
           await Promise.all(
@@ -86,7 +93,7 @@ export function ReportExport({
                     exportedAt: new Date().toISOString(),
                     from: from.toISOString(),
                     to: end.toISOString(),
-                    records,
+                    records: completeRecords,
                   },
                   null,
                   2,
@@ -116,6 +123,7 @@ export function ReportExport({
         type: "error",
       });
     } finally {
+      onFinish();
       setBusy(false);
     }
   }
@@ -167,7 +175,7 @@ export function ReportExport({
               {[
                 ["日期區間", `${dayKey(from)} 至 ${dayKey(to)}`],
                 ["搜尋關鍵字", query || "全部關鍵字"],
-                ["紀錄筆數", `${records.length} 筆`],
+                ["紀錄筆數", `${total} 筆`],
               ].map(([label, value]) => (
                 <div
                   key={label}

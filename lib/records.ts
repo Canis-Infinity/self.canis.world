@@ -2,6 +2,7 @@ import { z } from "zod";
 import { entry } from "./schema";
 import {
   Heart,
+  Utensils,
   Moon,
   Activity,
   Pill,
@@ -37,6 +38,11 @@ export const categories = {
     icon: NotebookPen,
     description: "把想法留在這裡，慢慢理解自己",
   },
+  diet: {
+    label: "飲食紀錄",
+    icon: Utensils,
+    description: "記錄飲食、飲料與食慾的變化",
+  },
   appointment: {
     label: "回診行事曆",
     icon: CalendarDays,
@@ -44,6 +50,15 @@ export const categories = {
   },
 } as const;
 export const kinds = Object.keys(categories) as Kind[];
+export const meals = {
+  breakfast: "早餐",
+  lunch: "午餐",
+  dinner: "晚餐",
+  snack: "點心",
+};
+export function moodScore(data: { score: number; scale?: number }) {
+  return data.scale === 10 ? data.score : [1, 3, 6, 8, 10][data.score - 1];
+}
 export const moods = ["很低落", "有些低落", "平穩", "還不錯", "很好"];
 export const qualities = ["很差", "較差", "普通", "不錯", "很好"];
 export const medicationPeriods = {
@@ -91,7 +106,9 @@ export function dayKey(value: Date | string) {
 export function summary(record: EntryInput) {
   switch (record.kind) {
     case "mood":
-      return `${moods[record.data.score - 1]}${record.data.emotions ? ` · ${record.data.emotions}` : ""}`;
+      return `${moodScore(record.data)} / 10 分${record.data.emotions ? ` · ${record.data.emotions}` : ""}`;
+    case "diet":
+      return `${meals[record.data.meal]} · 食慾 ${record.data.appetite} / 10 分`;
     case "sleep":
       return `${((new Date(record.data.wakeAt).getTime() - new Date(record.data.bedtime).getTime()) / 3600000).toFixed(1)} 小時 · ${qualities[record.data.quality - 1]}`;
     case "body":
@@ -111,6 +128,13 @@ export function summary(record: EntryInput) {
 }
 export function details(record: EntryInput) {
   switch (record.kind) {
+    case "diet":
+      return [
+        record.data.food && `飲食：${record.data.food}`,
+        record.data.drinks && `飲料：${record.data.drinks}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
     case "mood":
       return record.data.trigger && `相關事件：${record.data.trigger}`;
     case "sleep":
@@ -124,4 +148,28 @@ export function details(record: EntryInput) {
     default:
       return "";
   }
+}
+
+// Interpolate through amber; endpoints match the requested red and green.
+export function scoreColor(score: number) {
+  const stops = [
+    [159, 7, 18],
+    [148, 105, 0],
+    [1, 102, 48],
+  ];
+  const position = ((Math.max(1, Math.min(10, score)) - 1) / 9) * 2;
+  const index = Math.min(1, Math.floor(position));
+  return (
+    "#" +
+    stops[index]
+      .map((value, channel) =>
+        Math.round(
+          value + (stops[index + 1][channel] - value) * (position - index),
+        )
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+      .toUpperCase()
+  );
 }

@@ -1,6 +1,8 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { flushSync } from "react-dom";
+import { RecordPagination } from "./record-pagination";
 import { useAuth } from "./auth-context";
 import { ContentSkeleton } from "./content-skeleton";
 import { AppointmentCalendar } from "./appointment-calendar";
@@ -12,8 +14,6 @@ import {
   Search,
   Pencil,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +52,8 @@ import { toast } from "@/components/ui/toast";
 import { api, ApiError, getEntries } from "@/lib/api";
 import {
   categories,
-  moods as moodsLabels,
+  moodScore,
+  scoreColor,
   kinds,
   dayKey,
   dateLabel,
@@ -95,75 +96,122 @@ export function SelfApp({
   );
   const [page, setPage] = useState(1);
   const [includeImages, setIncludeImages] = useState(false);
+  const [month, setMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
+  const [search, setSearch] = useState("");
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
+  const [stats, setStats] = useState<{
+    days: number;
+    moodCount: number;
+    moodAverage: number | null;
+    sleepCount: number;
+    sleepAverage: number | null;
+    moods: Entry[];
+    nextVisit: Entry | null;
+  } | null>(null);
+  const [exportRecords, setExportRecords] = useState<Entry[] | null>(null);
+  const requestId = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (query === search) return;
+    const timer = setTimeout(() => {
+      setSearch(query);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, search]);
+  const params = useMemo(() => {
+    const start =
+      view === "appointment"
+        ? new Date(month.getFullYear(), month.getMonth(), 1 - month.getDay())
+        : from;
+    const end =
+      view === "appointment"
+        ? new Date(month.getFullYear(), month.getMonth() + 1, 0)
+        : new Date(to);
+    if (view === "appointment") end.setDate(end.getDate() + 6 - end.getDay());
+    end.setHours(23, 59, 59, 999);
+    return new URLSearchParams({
+      from: start.toISOString(),
+      to: end.toISOString(),
+      kind: view === "dashboard" || view === "report" ? "journal" : view,
+      q: view === "appointment" ? "" : search,
+    }).toString();
+  }, [view, from, to, search, month]);
+  const pageSize = view === "dashboard" ? 6 : 20;
   const load = useCallback(async () => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const id = ++requestId.current;
     setLoading(true);
     setError("");
     try {
-      setRecords(await getEntries());
+      if (view === "appointment") {
+        const entries = await getEntries(controller.signal, params);
+        if (id === requestId.current) setRecords(entries);
+      } else {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const extras = new URLSearchParams({
+          page: String(page),
+          limit: String(pageSize),
+          ...(view === "dashboard" || view === "report"
+            ? {
+                stats: "1",
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                today: today.toISOString(),
+              }
+            : {}),
+        });
+        const result = await api<{
+          entries: Entry[];
+          total: number;
+          page: number;
+          pages: number;
+          stats?: typeof stats;
+        }>(`/entries?${params}&${extras}`, { signal: controller.signal });
+        if (id !== requestId.current) return;
+        setRecords(result.entries);
+        setTotal(result.total);
+        setPages(result.pages);
+        setPage(result.page);
+        setStats(result.stats || null);
+      }
     } catch (e) {
+      if (controller.signal.aborted || id !== requestId.current) return;
       if (e instanceof ApiError && e.status === 401) {
         expire();
         setRecords([]);
       } else setError(e instanceof Error ? e.message : "無法讀取紀錄");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, [expire]);
+  }, [expire, view, params, page, pageSize]);
   useEffect(() => {
     void load();
+    return () => {
+      activeRequest.current?.abort();
+    };
   }, [load, refreshTick]);
   const end = new Date(to);
   end.setHours(23, 59, 59, 999);
   const validRange = from <= end;
-  const filtered = useMemo(
-    () =>
-      records.filter((r) => {
-        const timestamp = new Date(r.occurredAt).getTime();
-        const last = new Date(to);
-        last.setHours(23, 59, 59, 999);
-        return (
-          timestamp >= from.getTime() &&
-          timestamp <= last.getTime() &&
-          (view === "report" || view === "dashboard"
-            ? r.kind !== "appointment"
-            : r.kind === view) &&
-          `${r.title} ${summary(r)} ${details(r)} ${r.note}`
-            .toLowerCase()
-            .includes(query.toLowerCase())
-        );
-      }),
-    [records, from, to, view, query],
-  );
-  const appointments = records
-    .filter((r) => r.kind === "appointment")
-    .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
-  const nextVisit = appointments.find(
-    (r) => dayKey(r.occurredAt) >= dayKey(new Date()),
-  );
-  const moods = filtered.filter((r) => r.kind === "mood");
-  const sleeps = filtered.filter((r) => r.kind === "sleep");
-  const moodAverage = moods.length
-    ? (
-        moods.reduce(
-          (sum, r) => sum + (r.kind === "mood" ? r.data.score : 0),
-          0,
-        ) / moods.length
-      ).toFixed(1)
-    : "—";
-  const sleepAverage = sleeps.length
-    ? (
-        sleeps.reduce(
-          (sum, r) =>
-            sum +
-            (r.kind === "sleep"
-              ? (new Date(r.data.wakeAt).getTime() -
-                  new Date(r.data.bedtime).getTime()) /
-                3600000
-              : 0),
-          0,
-        ) / sleeps.length
-      ).toFixed(1)
-    : "—";
+  const filtered = exportRecords || records;
+  const appointments = records;
+  const nextVisit = stats?.nextVisit;
+  const moods = stats?.moods || [];
+  const moodAverage =
+    stats?.moodAverage == null ? "—" : stats.moodAverage.toFixed(1);
+  const sleepAverage =
+    stats?.sleepAverage == null ? "—" : stats.sleepAverage.toFixed(1);
+  async function prepareExport() {
+    const entries = await getEntries(undefined, params);
+    flushSync(() => setExportRecords(entries));
+    return entries;
+  }
   const title =
     view === "dashboard"
       ? "我的狀態總覽"
@@ -217,8 +265,20 @@ export function SelfApp({
   }
   function recordCard(r: Entry, print = false) {
     const Icon = categories[r.kind].icon;
+    const rating =
+      r.kind === "mood"
+        ? moodScore(r.data)
+        : r.kind === "diet"
+          ? r.data.appetite
+          : null;
     return (
-      <Card key={r.id} className="record-card">
+      <Card
+        key={r.id}
+        className={`record-card ${rating !== null ? "border-l-4" : ""}`}
+        style={
+          rating !== null ? { borderLeftColor: scoreColor(rating) } : undefined
+        }
+      >
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
@@ -230,7 +290,19 @@ export function SelfApp({
                   {dateLabel(r.occurredAt, r.kind === "appointment")}
                 </time>
               </div>
-              <CardTitle>{r.title}</CardTitle>
+              <CardTitle>
+                {r.kind === "appointment" ? r.title : categories[r.kind].label}
+              </CardTitle>
+              {rating !== null && (
+                <Badge
+                  style={{
+                    backgroundColor: scoreColor(rating),
+                    color: "#FFFFFF",
+                  }}
+                >
+                  {r.kind === "diet" ? "食慾" : "心情"} {rating} / 10
+                </Badge>
+              )}
             </div>
             {!print && (
               <div className="flex gap-1 print:hidden">
@@ -320,7 +392,10 @@ export function SelfApp({
             <div className="print:hidden">
               {view === "report" ? (
                 <ReportExport
-                  records={filtered}
+                  records={records}
+                  total={total}
+                  prepare={prepareExport}
+                  onFinish={() => setExportRecords(null)}
                   name={user?.name || ""}
                   from={from}
                   to={to}
@@ -387,6 +462,7 @@ export function SelfApp({
               <Input
                 aria-label="搜尋紀錄"
                 placeholder="搜尋標題或紀錄內容"
+                maxLength={200}
                 className="pl-9"
                 value={query}
                 onChange={(e) => {
@@ -429,27 +505,17 @@ export function SelfApp({
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   {[
-                    [
-                      "已記錄天數",
-                      new Set(filtered.map((r) => dayKey(r.occurredAt))).size,
-                      "天 · 依目前日期範圍",
-                    ],
+                    ["已記錄天數", stats?.days || 0, "天 · 依目前日期範圍"],
                     [
                       "平均心情",
-                      moodAverage === "—"
-                        ? "—"
-                        : moodsLabels[
-                            Math.max(
-                              0,
-                              Math.min(4, Math.round(Number(moodAverage)) - 1),
-                            )
-                          ],
-                      `${moods.length} 筆紀錄`,
+                      moodAverage === "—" ? "—" : `${moodAverage} / 10`,
+                      `${stats?.moodCount || 0} 筆紀錄`,
                     ],
+
                     [
                       "平均睡眠",
                       sleepAverage,
-                      `小時 · ${sleeps.length} 筆紀錄`,
+                      `小時 · ${stats?.sleepCount || 0} 筆紀錄`,
                     ],
                   ].map(([label, value, unit]) => (
                     <Card key={label}>
@@ -490,13 +556,17 @@ export function SelfApp({
                               >
                                 <span className="text-sm">
                                   {r.kind === "mood" &&
-                                    moodsLabels[r.data.score - 1]}
+                                    `${moodScore(r.data)} 分`}
                                 </span>
                                 <div
                                   title={`${dateLabel(r.occurredAt)}：${summary(r)}`}
                                   className="w-full max-w-8 rounded-t bg-primary/75"
                                   style={{
-                                    height: `${r.kind === "mood" ? r.data.score * 20 : 0}px`,
+                                    height: `${r.kind === "mood" ? moodScore(r.data) * 12 : 0}px`,
+                                    backgroundColor:
+                                      r.kind === "mood"
+                                        ? scoreColor(moodScore(r.data))
+                                        : undefined,
                                   }}
                                 />
                                 <span className="text-xs text-muted-foreground">
@@ -555,17 +625,19 @@ export function SelfApp({
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-xl font-semibold">最近的紀錄</h2>
-                  <Badge variant="secondary">{filtered.length} 筆</Badge>
+                  <Badge variant="secondary">共 {total} 筆</Badge>
                 </div>
                 <div className="space-y-4">
                   {filtered.length
-                    ? filtered.slice(0, 6).map((r) => recordCard(r))
+                    ? filtered.map((r) => recordCard(r))
                     : empty()}
                 </div>
               </>
             )}
             {view === "appointment" && (
               <AppointmentCalendar
+                month={month}
+                setMonth={setMonth}
                 appointments={appointments}
                 onCreate={(date) => setEditor({ kind: "appointment", date })}
                 onEdit={(record) => setEditor({ kind: "appointment", record })}
@@ -574,7 +646,7 @@ export function SelfApp({
             {view === "report" && (
               <>
                 <p className="text-sm text-muted-foreground print:hidden">
-                  {dayKey(from)} 至 {dayKey(to)} · {filtered.length}{" "}
+                  {dayKey(from)} 至 {dayKey(to)} · {total}{" "}
                   筆紀錄。這份摘要僅整理你填寫的內容，方便回診討論。
                 </p>
 
@@ -588,14 +660,16 @@ export function SelfApp({
                             <h2 className="text-xl font-semibold">
                               {categories[k].label}{" "}
                               <span className="text-sm font-normal text-muted-foreground">
-                                {group.length} 筆
+                                {group.length} 筆{!exportRecords && "（本頁）"}
                               </span>
                             </h2>
                             {group.length ? (
                               group.map((r) => recordCard(r, true))
                             ) : (
                               <p className="text-sm text-muted-foreground">
-                                此期間無紀錄。
+                                {exportRecords
+                                  ? "此期間無紀錄。"
+                                  : "本頁無此類紀錄。"}
                               </p>
                             )}
                           </section>
@@ -609,40 +683,24 @@ export function SelfApp({
               view !== "appointment" && (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    共 {filtered.length} 筆紀錄
+                    共 {total} 筆紀錄
                   </p>
                   <div className="space-y-4">
                     {filtered.length
-                      ? filtered
-                          .slice((page - 1) * 20, page * 20)
-                          .map((r) => recordCard(r))
+                      ? filtered.map((r) => recordCard(r))
                       : empty()}
                   </div>
-                  {filtered.length > 20 && (
-                    <div className="flex items-center justify-center gap-4">
-                      <Button
-                        variant="outline"
-                        disabled={page === 1}
-                        onClick={() => setPage((p) => p - 1)}
-                      >
-                        <ChevronLeft />
-                        上一頁
-                      </Button>
-                      <span>
-                        {page} / {Math.ceil(filtered.length / 20)}
-                      </span>
-                      <Button
-                        variant="outline"
-                        disabled={page >= Math.ceil(filtered.length / 20)}
-                        onClick={() => setPage((p) => p + 1)}
-                      >
-                        下一頁
-                        <ChevronRight />
-                      </Button>
-                    </div>
-                  )}
                 </>
               )}
+            {view !== "appointment" && !exportRecords && (
+              <RecordPagination
+                page={page}
+                pages={pages}
+                total={total}
+                pageSize={pageSize}
+                onChange={setPage}
+              />
+            )}
           </>
         )}
         <footer className="border-t pt-5 text-sm text-muted-foreground print:hidden">
