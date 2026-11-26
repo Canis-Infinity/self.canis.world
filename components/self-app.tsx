@@ -6,10 +6,8 @@ import { ContentSkeleton } from "./content-skeleton";
 import { AppointmentCalendar } from "./appointment-calendar";
 import {
   CalendarDays,
-  Download,
   FileText,
   Plus,
-  Printer,
   RefreshCw,
   Search,
   Pencil,
@@ -63,7 +61,7 @@ import {
   type Kind,
   type Entry,
 } from "@/lib/records";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ReportExport } from "./report-export";
 import { EntryEditor } from "./entry-editor";
 import { DateTimeField } from "./date-time-field";
 type View = "dashboard" | "report" | Kind;
@@ -75,19 +73,6 @@ export function SelfApp({
   reportDate?: string;
 }) {
   const { user, refreshTick, expire } = useAuth();
-  const isMobile = useIsMobile();
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const [pdfDownload, setPdfDownload] = useState<{
-    url: string;
-    filename: string;
-  } | null>(null);
-  useEffect(
-    () => () => {
-      if (pdfDownload) URL.revokeObjectURL(pdfDownload.url);
-    },
-    [pdfDownload],
-  );
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [records, setRecords] = useState<Entry[]>([]);
@@ -127,9 +112,6 @@ export function SelfApp({
   useEffect(() => {
     void load();
   }, [load, refreshTick]);
-  useEffect(() => {
-    setPdfDownload(null);
-  }, [from, to, query, includeImages, records]);
   const end = new Date(to);
   end.setHours(23, 59, 59, 999);
   const validRange = from <= end;
@@ -209,34 +191,6 @@ export function SelfApp({
     } finally {
       setDeleteBusy(false);
     }
-  }
-  function exportData() {
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            exportedAt: new Date().toISOString(),
-            from: from.toISOString(),
-            to: end.toISOString(),
-            records: filtered,
-          },
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `self-${dayKey(from)}-${dayKey(to)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.add({
-      title: "紀錄已匯出",
-      description: "JSON 包含紀錄與附件識別碼；圖片可透過列印摘要一併保存。",
-      type: "success",
-    });
   }
   function empty(
     label = "這段時間還沒有紀錄",
@@ -365,113 +319,18 @@ export function SelfApp({
             </div>
             <div className="print:hidden">
               {view === "report" ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={includeImages ? "default" : "outline"}
-                    aria-pressed={includeImages}
-                    disabled={pdfBusy}
-                    onClick={() => setIncludeImages((v) => !v)}
-                  >
-                    包含圖片：{includeImages ? "包含" : "不包含"}
-                  </Button>
-                  {isMobile && pdfDownload && (
-                    <Button
-                      variant="outline"
-                      render={
-                        <a
-                          href={pdfDownload.url}
-                          download={pdfDownload.filename}
-                        />
-                      }
-                    >
-                      <Download />
-                      下載 PDF
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={exportData}
-                    disabled={
-                      pdfBusy ||
-                      loading ||
-                      !!error ||
-                      !filtered.length ||
-                      !validRange
-                    }
-                  >
-                    <Download />
-                    匯出 JSON
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      if (isMobile) {
-                        setPdfBusy(true);
-                        setPdfDownload(null);
-                        try {
-                          const { createReportPdf } =
-                            await import("@/lib/report-pdf");
-                          const blob = await createReportPdf({
-                            records: filtered,
-                            name: user?.name || "",
-                            from: dayKey(from),
-                            to: dayKey(to),
-                            query,
-                            includeImages,
-                          });
-                          const url = URL.createObjectURL(blob);
-                          const filename = `回診摘要_${dayKey(from)}_${dayKey(to)}.pdf`;
-                          setPdfDownload({ url, filename });
-                          const link = document.createElement("a");
-                          link.href = url;
-                          link.download = filename;
-                          document.body.appendChild(link);
-                          link.click();
-                          link.remove();
-                          toast.add({
-                            title: "PDF 已產生",
-                            description: "若未自動下載，請點選「下載 PDF」。",
-                            type: "success",
-                          });
-                        } catch (error) {
-                          toast.add({
-                            title: "無法匯出 PDF",
-                            description:
-                              error instanceof Error
-                                ? error.message
-                                : "請稍後重試",
-                            type: "error",
-                          });
-                        } finally {
-                          setPdfBusy(false);
-                        }
-                        return;
-                      }
-                      if (includeImages)
-                        await Promise.all(
-                          Array.from(
-                            document.querySelectorAll<HTMLImageElement>(
-                              ".record-card img",
-                            ),
-                          ).map((img) => img.decode().catch(() => {})),
-                        );
-                      window.print();
-                    }}
-                    disabled={
-                      pdfBusy ||
-                      loading ||
-                      !!error ||
-                      !filtered.length ||
-                      !validRange
-                    }
-                  >
-                    {isMobile ? <Download /> : <Printer />}
-                    {pdfBusy
-                      ? "正在產生 PDF…"
-                      : isMobile
-                        ? "匯出 PDF"
-                        : "列印／PDF"}
-                  </Button>
-                </div>
+                <ReportExport
+                  records={filtered}
+                  name={user?.name || ""}
+                  from={from}
+                  to={to}
+                  query={query}
+                  includeImages={includeImages}
+                  onImagesChange={setIncludeImages}
+                  disabled={
+                    loading || !!error || !filtered.length || !validRange
+                  }
+                />
               ) : view === "dashboard" ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger render={<Button />}>
@@ -566,11 +425,6 @@ export function SelfApp({
                   <p>
                     {user?.name} · {dayKey(from)} 至 {dayKey(to)} ·{" "}
                     {filtered.length} 筆{query && ` · 搜尋：${query}`}
-                  </p>
-                  <p>
-                    時間依裝置時區：
-                    {Intl.DateTimeFormat().resolvedOptions().timeZone}
-                    。以下為本人填寫的紀錄，未經醫療判讀。
                   </p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">

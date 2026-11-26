@@ -133,3 +133,5 @@ node node_modules/vitest/vitest.mjs run tests/self.test.js
 UI 測試可使用獨立暫存 MongoDB：在 backend 設定 `SELF_E2E=1` 後執行 `node scripts/self-e2e-server.js`（API 17447）；self 設定 `INTERNAL_API_BASE_URL=http://127.0.0.1:17447`。測試帳號 `self@example.test`／`self-e2e-password` 僅存在於暫存資料庫，停止後即清除，不可用於正式環境。
 
 - 各頁使用對應 Skeleton：登入表單、總覽統計與圖表、情緒／睡眠／身體／用藥／反思紀錄卡、回診月曆與分組回診摘要；路由切換、登入檢查及 API 載入均依頁面顯示，Sidebar 不參與 Skeleton。
+
+- 回診摘要統一由「匯出報表」對話框確認日期、關鍵字、筆數與圖片選項，支援 PDF／JSON；桌面另提供列印，手機隱藏列印。

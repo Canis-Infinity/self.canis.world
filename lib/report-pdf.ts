@@ -80,13 +80,6 @@ export async function createReportPdf(options: {
     `共 ${records.length} 筆紀錄 · 情緒 ${moods.length} 筆 · 睡眠 ${sleeps.length} 筆`,
     23,
   );
-  text(`時區：${Intl.DateTimeFormat().resolvedOptions().timeZone}`, 20);
-  text(
-    "以下僅整理本人填寫的內容，方便回診討論，未經醫療判讀。",
-    21,
-    false,
-    "#666",
-  );
   y += 20;
   for (const kind of kinds.filter((k) => k !== "appointment")) {
     const group = records.filter((r) => r.kind === kind);
