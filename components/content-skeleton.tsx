@@ -130,14 +130,12 @@ export function ContentSkeleton({
 
 function FilterSkeleton() {
   return (
-    <div className="flex flex-wrap items-end gap-4 rounded-xl border p-4">
-      {[0, 1].map((i) => (
-        <div key={i} className="space-y-2">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-9 w-36" />
-        </div>
-      ))}
-      <Skeleton className="h-9 min-w-48 flex-1" />
+    <div className="grid items-end gap-4 rounded-xl border p-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <Skeleton className="h-9 w-full" />
     </div>
   );
 }

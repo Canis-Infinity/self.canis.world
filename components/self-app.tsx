@@ -64,7 +64,7 @@ import {
 } from "@/lib/records";
 import { ReportExport } from "./report-export";
 import { EntryEditor } from "./entry-editor";
-import { DateTimeField } from "./date-time-field";
+import { DateRangeField } from "./date-range-field";
 type View = "dashboard" | "report" | Kind;
 export function SelfApp({
   view = "dashboard",
@@ -437,27 +437,17 @@ export function SelfApp({
           </div>
         )}
         {view !== "appointment" && (
-          <div className="flex flex-wrap items-end gap-4 rounded-xl border bg-background p-4 print:hidden">
-            <DateTimeField
-              label="開始日期"
-              value={from}
-              onChange={(d) => {
-                d.setHours(0, 0, 0, 0);
-                setFrom(d);
+          <div className="grid min-w-0 items-end gap-4 rounded-xl border bg-background p-4 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] print:hidden">
+            <DateRangeField
+              from={from}
+              to={to}
+              onChange={(start, end) => {
+                setFrom(start);
+                setTo(end);
                 setPage(1);
               }}
-              dateOnly
             />
-            <DateTimeField
-              label="結束日期"
-              value={to}
-              onChange={(d) => {
-                setTo(d);
-                setPage(1);
-              }}
-              dateOnly
-            />
-            <div className="relative min-w-48 flex-1">
+            <div className="relative min-w-0">
               <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
               <Input
                 aria-label="搜尋紀錄"

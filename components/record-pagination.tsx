@@ -42,8 +42,8 @@ export function RecordPagination({
     },
   });
   return (
-    <div className="space-y-3 print:hidden">
-      <div className="flex items-center justify-center gap-3">
+    <div className="flex flex-col items-center gap-3 lg:flex-row lg:flex-wrap lg:justify-between print:hidden">
+      <div className="flex shrink-0 items-center justify-center gap-3">
         <span className="text-sm text-muted-foreground">每頁筆數</span>
         <Select
           value={String(pageSize)}
@@ -64,12 +64,12 @@ export function RecordPagination({
           </SelectContent>
         </Select>
       </div>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm whitespace-nowrap text-muted-foreground">
         第 {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} 筆，共{" "}
         {total} 筆
       </p>
       {pages > 1 && (
-        <Pagination aria-label="紀錄分頁">
+        <Pagination aria-label="紀錄分頁" className="mx-0 w-auto shrink-0">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious

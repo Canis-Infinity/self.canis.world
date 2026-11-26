@@ -146,3 +146,6 @@ PDF 匯出需先部署 backend 最新版本，執行 `docker compose up -d --bui
 - 日期／時間使用 shadcn/ui DatePickerTime 組合（FieldGroup、Field、FieldLabel、Popover、Calendar、Input）；時間 step=1 支援秒，回診只有日期。
 
 - Header 在桌面與手機皆固定於捲動視窗頂端，列印時隱藏。
+
+Self 篩選區使用 shadcn/ui Range Picker 整合起訖日期，桌面雙月、手機單月、星期日為第一欄；日期與搜尋以響應式 Grid 排列，避免欄位重疊。
+分頁控制在桌面以單行排列每頁筆數、顯示範圍及頁碼；手機分行顯示。
