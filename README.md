@@ -152,3 +152,5 @@ Self 篩選區使用 shadcn/ui Range Picker 整合起訖日期，桌面雙月、
 
 Self 總覽與回診摘要的統計卡片包含已記錄天數、平均心情、平均睡眠及平均食慾，皆搭配 icon；平均食慾依完整篩選區間計算，不受分頁影響。
 身體數據置於飲食紀錄之後，Sidebar、新增選單、回診摘要、PDF、JSON 與 Skeleton 採用同一分類順序。
+
+正式站 Nginx 設定範本：deploy/nginx.conf。502／503／504 直接由 Nginx 提供 public/50x.html，不依賴 Next.js 運行，且不快取錯誤頁。修改後先執行 nginx -t，再 reload。
