@@ -300,7 +300,7 @@ export function SelfApp({
                     color: "#FFFFFF",
                   }}
                 >
-                  {r.kind === "diet" ? "食慾" : "心情"} {rating} / 10
+                  {rating} / 10
                 </Badge>
               )}
             </div>

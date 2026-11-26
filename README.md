@@ -144,3 +144,5 @@ PDF 匯出需先部署 backend 最新版本，執行 `docker compose up -d --bui
 - 舊心情資料需在 backend 執行 `node scripts/migrate-self-moods.js`；Docker：`docker exec backend_canis_world node scripts/migrate-self-moods.js`。1/2/3/4/5 轉成 1/3/6/8/10，保留原分數、日期、內容與附件，可安全重跑。
 
 - 日期／時間使用 shadcn/ui DatePickerTime 組合（FieldGroup、Field、FieldLabel、Popover、Calendar、Input）；時間 step=1 支援秒，回診只有日期。
+
+- Header 在桌面與手機皆固定於捲動視窗頂端，列印時隱藏。

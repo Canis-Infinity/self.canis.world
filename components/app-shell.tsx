@@ -124,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <a href="#main" className="sr-only focus:not-sr-only">
             跳至主要內容
           </a>
-          <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 sm:px-6 print:hidden">
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-background px-4 md:rounded-t-xl sm:px-6 print:hidden">
             <div className="flex min-w-0 items-center gap-3">
               <SidebarTrigger aria-label="切換側邊欄" />
               <Breadcrumb aria-label="頁面導覽">
