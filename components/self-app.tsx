@@ -63,6 +63,7 @@ import {
   type Kind,
   type Entry,
 } from "@/lib/records";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { EntryEditor } from "./entry-editor";
 import { DateTimeField } from "./date-time-field";
 type View = "dashboard" | "report" | Kind;
@@ -74,6 +75,19 @@ export function SelfApp({
   reportDate?: string;
 }) {
   const { user, refreshTick, expire } = useAuth();
+  const isMobile = useIsMobile();
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfDownload, setPdfDownload] = useState<{
+    url: string;
+    filename: string;
+  } | null>(null);
+  useEffect(
+    () => () => {
+      if (pdfDownload) URL.revokeObjectURL(pdfDownload.url);
+    },
+    [pdfDownload],
+  );
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [records, setRecords] = useState<Entry[]>([]);
@@ -113,6 +127,9 @@ export function SelfApp({
   useEffect(() => {
     void load();
   }, [load, refreshTick]);
+  useEffect(() => {
+    setPdfDownload(null);
+  }, [from, to, query, includeImages, records]);
   const end = new Date(to);
   end.setHours(23, 59, 59, 999);
   const validRange = from <= end;
@@ -348,12 +365,38 @@ export function SelfApp({
             </div>
             <div className="print:hidden">
               {view === "report" ? (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={includeImages ? "default" : "outline"}
+                    aria-pressed={includeImages}
+                    disabled={pdfBusy}
+                    onClick={() => setIncludeImages((v) => !v)}
+                  >
+                    包含圖片：{includeImages ? "包含" : "不包含"}
+                  </Button>
+                  {isMobile && pdfDownload && (
+                    <Button
+                      variant="outline"
+                      render={
+                        <a
+                          href={pdfDownload.url}
+                          download={pdfDownload.filename}
+                        />
+                      }
+                    >
+                      <Download />
+                      下載 PDF
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={exportData}
                     disabled={
-                      loading || !!error || !filtered.length || !validRange
+                      pdfBusy ||
+                      loading ||
+                      !!error ||
+                      !filtered.length ||
+                      !validRange
                     }
                   >
                     <Download />
@@ -361,6 +404,48 @@ export function SelfApp({
                   </Button>
                   <Button
                     onClick={async () => {
+                      if (isMobile) {
+                        setPdfBusy(true);
+                        setPdfDownload(null);
+                        try {
+                          const { createReportPdf } =
+                            await import("@/lib/report-pdf");
+                          const blob = await createReportPdf({
+                            records: filtered,
+                            name: user?.name || "",
+                            from: dayKey(from),
+                            to: dayKey(to),
+                            query,
+                            includeImages,
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const filename = `回診摘要_${dayKey(from)}_${dayKey(to)}.pdf`;
+                          setPdfDownload({ url, filename });
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = filename;
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          toast.add({
+                            title: "PDF 已產生",
+                            description: "若未自動下載，請點選「下載 PDF」。",
+                            type: "success",
+                          });
+                        } catch (error) {
+                          toast.add({
+                            title: "無法匯出 PDF",
+                            description:
+                              error instanceof Error
+                                ? error.message
+                                : "請稍後重試",
+                            type: "error",
+                          });
+                        } finally {
+                          setPdfBusy(false);
+                        }
+                        return;
+                      }
                       if (includeImages)
                         await Promise.all(
                           Array.from(
@@ -372,11 +457,19 @@ export function SelfApp({
                       window.print();
                     }}
                     disabled={
-                      loading || !!error || !filtered.length || !validRange
+                      pdfBusy ||
+                      loading ||
+                      !!error ||
+                      !filtered.length ||
+                      !validRange
                     }
                   >
-                    <Printer />
-                    列印／PDF
+                    {isMobile ? <Download /> : <Printer />}
+                    {pdfBusy
+                      ? "正在產生 PDF…"
+                      : isMobile
+                        ? "匯出 PDF"
+                        : "列印／PDF"}
                   </Button>
                 </div>
               ) : view === "dashboard" ? (
@@ -630,15 +723,7 @@ export function SelfApp({
                   {dayKey(from)} 至 {dayKey(to)} · {filtered.length}{" "}
                   筆紀錄。這份摘要僅整理你填寫的內容，方便回診討論。
                 </p>
-                <div className="flex flex-wrap gap-3 print:hidden">
-                  <Button
-                    variant={includeImages ? "default" : "outline"}
-                    aria-pressed={includeImages}
-                    onClick={() => setIncludeImages((v) => !v)}
-                  >
-                    列印圖片：{includeImages ? "包含" : "不包含"}
-                  </Button>
-                </div>
+
                 {filtered.length
                   ? kinds
                       .filter((k) => k !== "appointment")

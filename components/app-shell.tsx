@@ -67,7 +67,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
   const pathname = usePathname();
-  const { setTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => setThemeReady(true), []);
   const expire = useCallback(() => setUser(null), []);
   useEffect(() => {
     const controller = new AbortController();
@@ -149,7 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Button variant="ghost" size="icon" aria-label="切換外觀" />
                   }
                 >
-                  <Sun />
+                  {themeReady && resolvedTheme === "dark" ? <Moon /> : <Sun />}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setTheme("light")}>
