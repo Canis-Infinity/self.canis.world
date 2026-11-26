@@ -1,0 +1,255 @@
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+export type SkeletonView =
+  | "dashboard"
+  | "report"
+  | "appointment"
+  | "mood"
+  | "sleep"
+  | "body"
+  | "medication"
+  | "reflection";
+export function ContentSkeleton({
+  view = "dashboard",
+  heading = false,
+}: {
+  view?: SkeletonView;
+  heading?: boolean;
+}) {
+  return (
+    <div
+      className="w-full space-y-6"
+      role="status"
+      aria-label="正在讀取內容"
+      aria-busy="true"
+    >
+      <span className="sr-only">正在讀取內容</span>
+      {heading && view !== "appointment" && (
+        <div className="flex items-center justify-between">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-9 w-56" />
+          </div>
+          <Skeleton className="h-9 w-28" />
+        </div>
+      )}
+      {heading && view !== "appointment" && <FilterSkeleton />}
+      {view === "appointment" ? (
+        <div className="overflow-hidden rounded-xl border">
+          <div className="flex items-center justify-between p-6">
+            <div className="flex gap-3">
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-9 w-48" />
+            </div>
+            <Skeleton className="h-9 w-28" />
+          </div>
+          <div className="grid grid-cols-7 border-t">
+            {Array.from({ length: 7 }, (_, i) => (
+              <div className="flex justify-center border-b p-4" key={i}>
+                <Skeleton className="h-4 w-8" />
+              </div>
+            ))}
+            {Array.from({ length: 35 }, (_, i) => (
+              <div
+                key={i}
+                className="h-36 space-y-4 border-r border-b p-3 sm:h-44 xl:h-48"
+              >
+                <Skeleton className="h-6 w-6 rounded-full" />
+                {i % 4 === 0 && <Skeleton className="h-7 w-full" />}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : view === "report" ? (
+        <ReportSkeleton />
+      ) : view !== "dashboard" ? (
+        <RecordListSkeleton kind={view} />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-4 w-28" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Skeleton className="h-9 w-20" />
+                  <Skeleton className="h-4 w-40" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="mt-2 h-4 w-52" />
+              </CardHeader>
+              <CardContent className="flex h-40 items-end gap-3">
+                {[40, 65, 50, 90, 70, 100, 60, 80].map((h, i) => (
+                  <Skeleton
+                    key={i}
+                    className="flex-1 rounded-b-none"
+                    style={{ height: `${h}%` }}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <Skeleton className="h-7 w-44" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-9 w-36" />
+              </CardContent>
+            </Card>
+          </div>
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="flex gap-3">
+                  <Skeleton className="size-6 rounded-full" />
+                  <Skeleton className="h-5 w-52" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+function FilterSkeleton() {
+  return (
+    <div className="flex flex-wrap items-end gap-4 rounded-xl border p-4">
+      {[0, 1].map((i) => (
+        <div key={i} className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-9 w-36" />
+        </div>
+      ))}
+      <Skeleton className="h-9 min-w-48 flex-1" />
+    </div>
+  );
+}
+function RecordListSkeleton({
+  kind,
+}: {
+  kind: Exclude<SkeletonView, "dashboard" | "report" | "appointment">;
+}) {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-4 w-24" />
+      {[0, 1, 2].map((i) => (
+        <RecordSkeleton key={i} kind={kind} />
+      ))}
+    </div>
+  );
+}
+function RecordSkeleton({ kind }: { kind: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-9 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="size-8" />
+            <Skeleton className="size-8" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {kind === "mood" && (
+          <>
+            <div className="flex gap-2">
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </>
+        )}
+        {kind === "sleep" && (
+          <>
+            <Skeleton className="h-7 w-36" />
+            <div className="flex flex-wrap gap-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-4 w-2/3" />
+          </>
+        )}
+        {kind === "body" && (
+          <>
+            <div className="flex items-end gap-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-4 w-12" />
+            </div>
+            <Skeleton className="h-4 w-1/2" />
+          </>
+        )}
+        {kind === "medication" && (
+          <>
+            <div className="flex gap-3">
+              <Skeleton className="h-6 w-14 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </>
+        )}
+        {kind === "reflection" && (
+          <div className="space-y-3">
+            {["w-full", "w-5/6", "w-full", "w-2/3"].map((width, i) => (
+              <Skeleton key={i} className={`h-4 ${width}`} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+function ReportSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-4 w-24" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-4 w-36" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-9 w-36" />
+      {["mood", "sleep", "body", "medication", "reflection"].map((kind) => (
+        <section key={kind} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <RecordSkeleton kind={kind} />
+        </section>
+      ))}
+    </div>
+  );
+}
