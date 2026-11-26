@@ -23,11 +23,6 @@ export const categories = {
     icon: Moon,
     description: "記下入睡、醒來與休息品質",
   },
-  body: {
-    label: "身體數據",
-    icon: Activity,
-    description: "追蹤量測數值與身體變化",
-  },
   medication: {
     label: "用藥紀錄",
     icon: Pill,
@@ -42,6 +37,11 @@ export const categories = {
     label: "飲食紀錄",
     icon: Utensils,
     description: "記錄飲食、飲料與食慾的變化",
+  },
+  body: {
+    label: "身體數據",
+    icon: Activity,
+    description: "追蹤量測數值與身體變化",
   },
   appointment: {
     label: "回診行事曆",

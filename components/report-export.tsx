@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Toaster, createToastManager } from "@/components/ui/toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { dayKey, type Entry } from "@/lib/records";
+import { dayKey, kinds, type Entry } from "@/lib/records";
 
 export function ReportExport({
   records,
@@ -93,7 +93,9 @@ export function ReportExport({
                     exportedAt: new Date().toISOString(),
                     from: from.toISOString(),
                     to: end.toISOString(),
-                    records: completeRecords,
+                    records: [...completeRecords].sort(
+                      (a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind),
+                    ),
                   },
                   null,
                   2,

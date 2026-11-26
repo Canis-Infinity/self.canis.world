@@ -8,6 +8,9 @@ import { ContentSkeleton } from "./content-skeleton";
 import { AppointmentCalendar } from "./appointment-calendar";
 import {
   CalendarDays,
+  Heart,
+  Moon,
+  Utensils,
   FileText,
   Plus,
   RefreshCw,
@@ -109,6 +112,8 @@ export function SelfApp({
     moodAverage: number | null;
     sleepCount: number;
     sleepAverage: number | null;
+    appetiteCount: number;
+    appetiteAverage: number | null;
     moods: Entry[];
     nextVisit: Entry | null;
   } | null>(null);
@@ -207,6 +212,8 @@ export function SelfApp({
     stats?.moodAverage == null ? "—" : stats.moodAverage.toFixed(1);
   const sleepAverage =
     stats?.sleepAverage == null ? "—" : stats.sleepAverage.toFixed(1);
+  const appetiteAverage =
+    stats?.appetiteAverage == null ? "—" : stats.appetiteAverage.toFixed(1);
   async function prepareExport() {
     const entries = await getEntries(undefined, params);
     flushSync(() => setExportRecords(entries));
@@ -493,24 +500,45 @@ export function SelfApp({
                     {filtered.length} 筆{query && ` · 搜尋：${query}`}
                   </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {[
-                    ["已記錄天數", stats?.days || 0, "天 · 依目前日期範圍"],
-                    [
-                      "平均心情",
-                      moodAverage === "—" ? "—" : `${moodAverage} / 10`,
-                      `${stats?.moodCount || 0} 筆紀錄`,
-                    ],
-
-                    [
-                      "平均睡眠",
-                      sleepAverage,
-                      `小時 · ${stats?.sleepCount || 0} 筆紀錄`,
-                    ],
-                  ].map(([label, value, unit]) => (
+                    {
+                      label: "已記錄天數",
+                      value: stats?.days || 0,
+                      unit: "天 · 依目前日期範圍",
+                      icon: CalendarDays,
+                    },
+                    {
+                      label: "平均心情",
+                      value: moodAverage === "—" ? "—" : `${moodAverage} / 10`,
+                      unit: `${stats?.moodCount || 0} 筆紀錄`,
+                      icon: Heart,
+                    },
+                    {
+                      label: "平均睡眠",
+                      value: sleepAverage,
+                      unit: `小時 · ${stats?.sleepCount || 0} 筆紀錄`,
+                      icon: Moon,
+                    },
+                    {
+                      label: "平均食慾",
+                      value:
+                        appetiteAverage === "—"
+                          ? "—"
+                          : `${appetiteAverage} / 10`,
+                      unit: `${stats?.appetiteCount || 0} 筆紀錄`,
+                      icon: Utensils,
+                    },
+                  ].map(({ label, value, unit, icon: Icon }) => (
                     <Card key={label}>
                       <CardHeader>
-                        <CardDescription>{label}</CardDescription>
+                        <CardDescription className="flex items-center gap-2">
+                          <Icon
+                            className="size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          {label}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <p className="text-3xl font-semibold tabular-nums">
