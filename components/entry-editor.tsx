@@ -3,6 +3,8 @@ import { z } from "zod";
 import { useState, type FormEvent } from "react";
 import { Upload, X, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,7 +78,18 @@ export function EntryEditor({
       Object.entries(
         record?.kind === "mood"
           ? { ...record.data, score: moodScore(record.data) }
-          : record?.data || {},
+          : record?.kind === "diet"
+            ? {
+                ...record.data,
+                food: [
+                  record.data.food,
+                  record.data.drinks && `飲料：${record.data.drinks}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                drinks: "",
+              }
+            : record?.data || {},
       ).map(([k, v]) => [k, String(v)]),
     ),
   );
@@ -127,24 +140,33 @@ export function EntryEditor({
     );
   }
   function tenPoint(key: string, label: string, low: string, high: string) {
+    const value = Number(data[key] ?? 5);
     return (
-      <div className="space-y-2">
-        <Label htmlFor={key}>{label} *</Label>
-        <Input
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <Label id={`${key}-label`}>{label} *</Label>
+          <Badge variant="secondary">{value} / 10</Badge>
+        </div>
+        <Slider
           id={key}
-          type="number"
           min={1}
           max={10}
           step={1}
-          inputMode="numeric"
-          required
-          value={data[key] || ""}
-          onChange={(e) => set(key, e.target.value)}
+          value={[value]}
+          disabled={busy}
+          onValueChange={(next) =>
+            set(key, String(Array.isArray(next) ? next[0] : next))
+          }
+          aria-labelledby={`${key}-label`}
           aria-describedby={`${key}-hint`}
         />
-        <p id={`${key}-hint`} className="text-sm text-muted-foreground">
-          1：{low} · 10：{high}
-        </p>
+        <div
+          id={`${key}-hint`}
+          className="flex justify-between gap-4 text-sm text-muted-foreground"
+        >
+          <span>{low}</span>
+          <span>{high}</span>
+        </div>
       </div>
     );
   }
@@ -197,7 +219,7 @@ export function EntryEditor({
       switch (kind) {
         case "mood":
           values = {
-            score: Number(data.score),
+            score: Number(data.score ?? 5),
             scale: 10,
             ...(record?.kind === "mood" && {
               legacyScore:
@@ -213,7 +235,7 @@ export function EntryEditor({
             meal: data.meal,
             food: data.food || "",
             drinks: data.drinks || "",
-            appetite: Number(data.appetite),
+            appetite: Number(data.appetite ?? 5),
           };
           break;
         case "sleep":
@@ -447,11 +469,11 @@ export function EntryEditor({
               {kind === "diet" && (
                 <>
                   {radio("meal", "餐別", meals)}
-                  {field("food", "吃了什麼", { multiline: true, max: 3000 })}
-                  {field("drinks", "飲料", {
-                    max: 1000,
-                    placeholder: "例如：水、無糖茶、咖啡",
-                  })}
+                  {field(
+                    "food",
+                    data.meal === "drink" ? "喝了什麼" : "吃了什麼",
+                    { multiline: true, required: true, max: 4100 },
+                  )}
                   {tenPoint("appetite", "食慾", "沒有食慾", "食慾旺盛")}
                 </>
               )}

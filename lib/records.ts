@@ -55,6 +55,7 @@ export const meals = {
   lunch: "午餐",
   dinner: "晚餐",
   snack: "點心",
+  drink: "飲料",
 };
 export function moodScore(data: { score: number; scale?: number }) {
   return data.scale === 10 ? data.score : [1, 3, 6, 8, 10][data.score - 1];
@@ -130,7 +131,8 @@ export function details(record: EntryInput) {
   switch (record.kind) {
     case "diet":
       return [
-        record.data.food && `飲食：${record.data.food}`,
+        record.data.food &&
+          `${record.data.meal === "drink" ? "飲料" : "飲食"}：${record.data.food}`,
         record.data.drinks && `飲料：${record.data.drinks}`,
       ]
         .filter(Boolean)

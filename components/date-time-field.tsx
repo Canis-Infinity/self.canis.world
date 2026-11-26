@@ -5,7 +5,7 @@ import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   Popover,
   PopoverContent,
@@ -25,9 +25,15 @@ export function DateTimeField({
   const id = useId();
   const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex flex-wrap gap-2">
+    <FieldGroup className="w-auto flex-row flex-wrap gap-3">
+      <Field className="w-fit">
+        <FieldLabel htmlFor={id}>
+          {dateOnly
+            ? label
+            : label.includes("日期")
+              ? label.replace("與時間", "")
+              : `${label}日期`}
+        </FieldLabel>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
             render={<Button id={id} type="button" variant="outline" />}
@@ -35,16 +41,22 @@ export function DateTimeField({
             <CalendarIcon />
             {value.toLocaleDateString("zh-TW")}
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
+          <PopoverContent className="w-auto overflow-hidden p-0" align="start">
             <Calendar
               mode="single"
               locale={zhTW}
               weekStartsOn={0}
               selected={value}
+              defaultMonth={value}
               onSelect={(d) => {
                 if (d) {
                   const next = new Date(d);
-                  next.setHours(value.getHours(), value.getMinutes(), 0, 0);
+                  next.setHours(
+                    value.getHours(),
+                    value.getMinutes(),
+                    value.getSeconds(),
+                    0,
+                  );
                   onChange(next);
                   setOpen(false);
                 }
@@ -55,25 +67,36 @@ export function DateTimeField({
             />
           </PopoverContent>
         </Popover>
-        {!dateOnly && (
+      </Field>
+      {!dateOnly && (
+        <Field className="w-40">
+          <FieldLabel htmlFor={`${id}-time`}>
+            {label.includes("日期") ? "時間" : `${label}時間`}
+          </FieldLabel>
           <Input
+            id={`${id}-time`}
             type="time"
             aria-label={`${label}時間`}
             required
-            step="60"
-            className="w-32"
-            value={`${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`}
+            step="1"
+            className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+            value={`${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}:${String(value.getSeconds()).padStart(2, "0")}`}
             onChange={(e) => {
-              const [h, m] = e.target.value.split(":").map(Number);
-              if (Number.isFinite(h) && Number.isFinite(m)) {
+              const [h, m, seconds = 0] = e.target.value.split(":").map(Number);
+              if (
+                e.target.value &&
+                Number.isFinite(h) &&
+                Number.isFinite(m) &&
+                Number.isFinite(seconds)
+              ) {
                 const d = new Date(value);
-                d.setHours(h, m, 0, 0);
+                d.setHours(h, m, seconds, 0);
                 onChange(d);
               }
             }}
           />
-        )}
-      </div>
-    </div>
+        </Field>
+      )}
+    </FieldGroup>
   );
 }
