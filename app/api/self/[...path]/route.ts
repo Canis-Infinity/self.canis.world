@@ -42,7 +42,12 @@ async function proxy(
     forwarded === "https" ? "https" : request.nextUrl.protocol.replace(":", ""),
   );
   try {
-    const max = path.join("/") === "images" ? 6 * 1024 * 1024 : 128 * 1024;
+    const max =
+      path.join("/") === "images"
+        ? 6 * 1024 * 1024
+        : path.join("/") === "report-pdf"
+          ? 2 * 1024 * 1024
+          : 128 * 1024;
     if (Number(request.headers.get("content-length")) > max)
       return Response.json({ message: "資料過大" }, { status: 413 });
     let body: ArrayBuffer | undefined;
@@ -79,7 +84,9 @@ async function proxy(
         body,
         cache: "no-store",
         redirect: "manual",
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(
+          path.join("/") === "report-pdf" ? 60000 : 20000,
+        ),
       },
     );
     const resultHeaders = new Headers({

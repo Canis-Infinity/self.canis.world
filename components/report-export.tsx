@@ -94,16 +94,7 @@ export function ReportExport({
               ],
               { type: "application/json" },
             )
-          : await (
-              await import("@/lib/report-pdf")
-            ).createReportPdf({
-              records,
-              name,
-              from: dayKey(from),
-              to: dayKey(to),
-              query,
-              includeImages,
-            });
+          : await (await import("@/lib/report-pdf")).createReportPdf();
       const filename = `回診摘要_${dayKey(from)}_${dayKey(to)}.${format === "json" ? "json" : "pdf"}`;
       const url = URL.createObjectURL(blob);
       setDownload({ url, filename });
@@ -226,6 +217,8 @@ export function ReportExport({
                 <Label htmlFor="export-images">包含圖片附件</Label>
               </div>
             )}
+          </div>
+          <DialogFooter className="mt-4 shrink-0">
             {download && (
               <Button
                 variant="outline"
@@ -235,8 +228,6 @@ export function ReportExport({
                 下載檔案
               </Button>
             )}
-          </div>
-          <DialogFooter className="mt-4 shrink-0">
             <Button
               variant="outline"
               disabled={busy}

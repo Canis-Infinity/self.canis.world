@@ -64,6 +64,12 @@
   }
   html,
   body {
+    font-family: Arial, "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+    background: white !important;
+    color: black !important;
+  }
+  #main,
+  #main [data-slot="card"] {
     background: white !important;
     color: black !important;
   }
