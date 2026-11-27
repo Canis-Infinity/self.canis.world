@@ -60,6 +60,7 @@ const navigation = [
     icon: categories[kind].icon,
   })),
   { href: "/report", label: "回診摘要", icon: FileText },
+  { href: "/admin", label: "帳號審核", icon: ShieldCheck },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -218,26 +219,30 @@ function NavigationSidebar({
           <SidebarGroupLabel>我的空間</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                    render={
-                      <Link
-                        href={item.href}
-                        aria-current={
-                          pathname === item.href ? "page" : undefined
-                        }
-                      />
-                    }
-                    onClick={() => setOpenMobile(false)}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navigation
+                .filter(
+                  (item) => item.href !== "/admin" || user?.role === "admin",
+                )
+                .map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={pathname === item.href}
+                      tooltip={item.label}
+                      render={
+                        <Link
+                          href={item.href}
+                          aria-current={
+                            pathname === item.href ? "page" : undefined
+                          }
+                        />
+                      }
+                      onClick={() => setOpenMobile(false)}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

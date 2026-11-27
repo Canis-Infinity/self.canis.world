@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { Leaf, Heart, Moon, Activity, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -153,9 +154,15 @@ export function Login({
               {busy ? "登入中…" : "登入"}
             </Button>
           </form>
+          <Link
+            href="/register"
+            className="block text-sm text-primary underline"
+          >
+            還沒有帳號？申請註冊
+          </Link>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="size-4" />
-            私人使用，不開放公開註冊。
+            帳號需經核准，紀錄僅供本人存取。
           </p>
         </div>
       </section>

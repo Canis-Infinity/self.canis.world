@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext } from "react";
-export type User = { name: string; email: string };
+export type User = { name: string; email: string; role?: "admin" | "user" };
 export const AuthContext = createContext<{
   user: User | null;
   refreshTick: number;
