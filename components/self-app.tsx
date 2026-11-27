@@ -278,6 +278,8 @@ export function SelfApp({
   }
   function recordCard(r: Entry, print = false) {
     const Icon = categories[r.kind].icon;
+    const text = [r.note, ...Object.values(r.data)].join("\n");
+    const longContent = text.length > 1000 || text.split("\n").length > 18;
     const rating =
       r.kind === "mood"
         ? moodScore(r.data)
@@ -287,7 +289,7 @@ export function SelfApp({
     return (
       <Card
         key={r.id}
-        className={`record-card ${rating !== null ? "border-l-4" : ""}`}
+        className={`record-card ${longContent ? "record-card-long" : ""} ${rating !== null ? "border-l-4" : ""}`}
         style={
           rating !== null ? { borderLeftColor: scoreColor(rating) } : undefined
         }
@@ -465,13 +467,13 @@ export function SelfApp({
           <>
             {(view === "dashboard" || view === "report") && (
               <>
-                <div className="hidden print:block">
+                <div className="report-meta hidden print:block">
                   <p>
                     {user?.name} · {dayKey(from)} 至 {dayKey(to)} ·{" "}
                     {filtered.length} 筆{query && ` · 搜尋：${query}`}
                   </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="report-stats grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {[
                     {
                       label: "已記錄天數",
@@ -481,10 +483,7 @@ export function SelfApp({
                     },
                     {
                       label: "平均心情",
-                      value:
-                        view === "dashboard" || moodAverage === "—"
-                          ? moodAverage
-                          : `${moodAverage} / 10`,
+                      value: moodAverage,
                       unit: `${stats?.moodCount || 0} 筆紀錄`,
                       icon: Heart,
                     },
@@ -496,10 +495,7 @@ export function SelfApp({
                     },
                     {
                       label: "平均食慾",
-                      value:
-                        view === "dashboard" || appetiteAverage === "—"
-                          ? appetiteAverage
-                          : `${appetiteAverage} / 10`,
+                      value: appetiteAverage,
                       unit: `${stats?.appetiteCount || 0} 筆紀錄`,
                       icon: Utensils,
                     },
@@ -612,7 +608,10 @@ export function SelfApp({
                       .map((k) => {
                         const group = filtered.filter((r) => r.kind === k);
                         return (
-                          <section key={k} className="space-y-4">
+                          <section
+                            key={k}
+                            className={`report-section space-y-4 ${!group.length ? "print:hidden" : ""}`}
+                          >
                             <h2 className="text-xl font-semibold">
                               {categories[k].label}{" "}
                               <span className="text-sm font-normal text-muted-foreground">

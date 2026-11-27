@@ -66,28 +66,133 @@
 @media print {
   @page {
     size: A4;
-    margin: 15mm;
+    margin: 16mm 15mm;
   }
   html,
   body {
     font-family: Arial, "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
     background: white !important;
-    color: black !important;
+    color: #172033 !important;
+    font-size: 10pt;
+    line-height: 1.6;
+  }
+  #main {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
   #main,
   #main [data-slot="card"] {
     background: white !important;
-    color: black !important;
+    color: #172033 !important;
+  }
+  #main > * {
+    margin-top: 0;
+    margin-bottom: 5mm;
+  }
+  #main h1 {
+    font-size: 23pt;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+  }
+  #main > div:first-child p {
+    display: none;
+  }
+  .report-meta {
+    border-bottom: 1.5pt solid #334155;
+    padding-bottom: 4mm;
+    font-size: 9pt;
+    color: #475569;
+  }
+  .report-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm;
+    break-inside: avoid;
+  }
+  .report-stats [data-slot="card"] {
+    padding: 3mm;
+    gap: 2mm;
+    border: 1px solid #cbd5e1;
+    border-radius: 2mm;
+    box-shadow: none;
+  }
+  .report-stats [data-slot="card-header"],
+  .report-stats [data-slot="card-content"] {
+    padding: 0;
+  }
+  .report-stats .text-3xl {
+    font-size: 19pt;
+  }
+  .report-stats .text-sm {
+    font-size: 8pt;
+  }
+  #main .text-foreground {
+    color: #172033 !important;
+  }
+  #main .text-muted-foreground {
+    color: #64748b !important;
+  }
+  .report-section > h2 {
+    font-size: 13pt;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 2mm;
+    margin-bottom: 3mm;
+    break-after: avoid;
+  }
+  .report-section > h2 span {
+    font-size: 9pt;
+    margin-left: 2mm;
   }
   .record-card {
+    display: block;
     break-inside: avoid;
     box-shadow: none;
-    border: 1px solid #ddd;
+    border: 1px solid #d8dee7 !important;
+    border-radius: 2mm;
+    padding: 3.5mm 4mm;
+    margin-top: 0;
+    margin-bottom: 3mm;
+    box-decoration-break: clone;
   }
-  .record-card,
-  .record-card * {
-    color: black !important;
+  .record-card-long {
+    break-inside: auto;
+  }
+  .record-card [data-slot="card-header"],
+  .record-card [data-slot="card-content"] {
+    padding: 0;
+  }
+  .record-card [data-slot="card-header"] {
+    margin-bottom: 2.5mm;
+    break-after: avoid;
+  }
+  .record-card .text-sm {
+    font-size: 9pt;
+  }
+  .record-card .text-xs {
+    font-size: 8pt;
+  }
+  .record-card [data-slot="badge"] {
+    color: #172033 !important;
     background: white !important;
+    border: 1px solid #94a3b8;
+    font-size: 10pt;
+    padding: 0 2mm;
+  }
+  .record-card p,
+  .record-card dd {
+    orphans: 3;
+    widows: 3;
+    overflow-wrap: anywhere;
+  }
+  .record-card .border-t {
+    border-color: #e2e8f0;
+  }
+  .record-card img {
+    max-height: 65mm;
+    object-fit: contain;
+    break-inside: avoid;
   }
   h2 {
     break-after: avoid;
