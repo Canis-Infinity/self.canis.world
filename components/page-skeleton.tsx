@@ -1,9 +1,11 @@
 "use client";
+import AdminLoading from "@/app/admin/loading";
 import { usePathname } from "next/navigation";
 import { ContentSkeleton, type SkeletonView } from "./content-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 export function PageSkeleton() {
   const pathname = usePathname();
+  if (pathname === "/admin") return <AdminLoading />;
   if (pathname === "/login")
     return (
       <div

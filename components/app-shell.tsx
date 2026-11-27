@@ -60,7 +60,7 @@ const navigation = [
     icon: categories[kind].icon,
   })),
   { href: "/report", label: "回診摘要", icon: FileText },
-  { href: "/admin", label: "帳號審核", icon: ShieldCheck },
+  { href: "/admin", label: "使用者管理", icon: ShieldCheck },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
