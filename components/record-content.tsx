@@ -13,7 +13,7 @@ export function RecordContent({ record: r }: { record: Entry }) {
   const fields: [string, string | undefined][] = [];
   let headline = "";
   if (r.kind === "mood") {
-    fields.push(["事件", r.data.trigger]);
+    fields.push(["感受", r.data.emotions], ["事件", r.data.trigger]);
   } else if (r.kind === "diet") {
     headline = meals[r.data.meal];
     fields.push(
@@ -53,23 +53,80 @@ export function RecordContent({ record: r }: { record: Entry }) {
         : null;
   const yesNo = (value: boolean | undefined) =>
     value == null ? "未填寫" : value ? "有" : "無";
+  const badgeStyle = (color: string | undefined) =>
+    color
+      ? ({
+          backgroundColor: color,
+          color: "#fff",
+          "--score-color": color,
+          "--badge-ink": "#fff",
+        } as CSSProperties)
+      : undefined;
+  const moodBadges =
+    r.kind === "mood"
+      ? [
+          {
+            label: "心情指數",
+            value: moodScore(r.data),
+            color: scoreColor(moodScore(r.data)),
+          },
+          {
+            label: "自傷傾向",
+            value: r.data.selfHarmUrge ?? "未填寫",
+            color:
+              r.data.selfHarmUrge == null
+                ? undefined
+                : scoreColor(10 - r.data.selfHarmUrge * 0.9),
+          },
+          {
+            label: "自殺傾向",
+            value: r.data.suicideUrge ?? "未填寫",
+            color:
+              r.data.suicideUrge == null
+                ? undefined
+                : scoreColor(10 - r.data.suicideUrge * 0.9),
+          },
+          {
+            label: "自傷行為",
+            value: yesNo(r.data.selfHarmed),
+            color: r.data.selfHarmed ? "#9F0712" : undefined,
+          },
+          {
+            label: "自殺行為",
+            value: yesNo(r.data.suicideAttempted),
+            color: r.data.suicideAttempted ? "#9F0712" : undefined,
+          },
+        ]
+      : [];
   return (
-    <div className="space-y-3">
-      {(score !== null || headline) && (
+    <div className="space-y-4">
+      {r.kind === "mood" && (
+        <div
+          className="record-indicators flex flex-wrap gap-2"
+          role="group"
+          aria-label="心情與行為指標"
+        >
+          {moodBadges.map(({ label, value, color }) => (
+            <Badge
+              key={label}
+              variant="outline"
+              className="h-auto gap-2 px-2.5 py-1 text-xs"
+              style={badgeStyle(color)}
+            >
+              <span className="font-normal">{label}</span>
+              <span className="font-semibold tabular-nums">{value}</span>
+            </Badge>
+          ))}
+        </div>
+      )}
+      {r.kind !== "mood" && (score !== null || headline) && (
         <div className="flex flex-wrap items-center gap-2">
           {score !== null && (
             <Badge
-              style={
-                {
-                  backgroundColor: scoreColor(score),
-                  color: "#fff",
-                  "--score-color": scoreColor(score),
-                } as CSSProperties
-              }
-              aria-label={`${r.kind === "mood" ? "心情" : "食慾"} ${score} 分`}
+              className="h-auto px-2.5 py-1"
+              style={badgeStyle(scoreColor(score))}
             >
-              {r.kind === "diet" && "食慾 "}
-              {score}
+              食慾 {score}
             </Badge>
           )}
           {headline && (
@@ -77,21 +134,16 @@ export function RecordContent({ record: r }: { record: Entry }) {
               {headline}
             </p>
           )}
-          {r.kind === "mood" && r.data.emotions && (
-            <p className="text-sm whitespace-pre-wrap break-words">
-              {r.data.emotions}
-            </p>
-          )}
         </div>
       )}
       {fields.some(([, value]) => value) && (
-        <dl className="space-y-2">
+        <dl className="space-y-3">
           {fields
             .filter(([, value]) => value)
             .map(([label, value], i) => (
               <div
                 key={i}
-                className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 text-sm"
+                className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 text-sm leading-relaxed"
               >
                 <dt className="text-muted-foreground">{label}</dt>
                 <dd className="whitespace-pre-wrap break-words">{value}</dd>
@@ -99,36 +151,11 @@ export function RecordContent({ record: r }: { record: Entry }) {
             ))}
         </dl>
       )}
-      {r.kind === "mood" && (
-        <dl className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
-          {[
-            ["自傷傾向", r.data.selfHarmUrge ?? "未填寫"],
-            ["自殺傾向", r.data.suicideUrge ?? "未填寫"],
-            ["自傷行為", yesNo(r.data.selfHarmed)],
-            ["嘗試自殺", yesNo(r.data.suicideAttempted)],
-          ].map(([label, value]) => (
-            <div key={label} className="flex gap-1.5">
-              <dt>{label}</dt>
-              <dd
-                className={`font-medium text-foreground ${typeof value === "number" ? "report-risk-score" : ""}`}
-                style={
-                  typeof value === "number"
-                    ? ({
-                        "--risk-color": scoreColor(10 - value * 0.9),
-                      } as CSSProperties)
-                    : undefined
-                }
-              >
-                {value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
       {r.note && (
-        <p className="border-t pt-3 text-sm whitespace-pre-wrap break-words leading-relaxed">
-          {r.note}
-        </p>
+        <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 border-t pt-3 text-sm leading-relaxed">
+          <span className="text-muted-foreground">備註</span>
+          <p className="whitespace-pre-wrap break-words">{r.note}</p>
+        </div>
       )}
     </div>
   );

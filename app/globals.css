@@ -174,11 +174,13 @@
     font-size: 8pt;
   }
   .record-card [data-slot="badge"] {
-    color: white !important;
-    background: var(--score-color, #475569) !important;
-    border: 1px solid var(--score-color, #475569);
-    font-size: 10pt;
-    padding: 0 2mm;
+    color: var(--badge-ink, #334155) !important;
+    background: var(--score-color, #f1f5f9) !important;
+    border: 1px solid var(--score-color, #d8dee7);
+    font-size: 8pt;
+    height: auto;
+    padding: 1mm 2mm;
+    break-inside: avoid;
   }
   .record-card p,
   .record-card dd {
@@ -229,11 +231,9 @@
   .record-card.border-l-4 {
     border-left-width: 4px;
   }
-  #main .report-risk-score {
-    color: var(--risk-color) !important;
-    background: color-mix(in srgb, var(--risk-color) 9%, white);
-    border-radius: 1mm;
-    padding: 0 1mm;
+  .record-indicators {
+    gap: 2mm;
+    break-inside: avoid;
   }
   h2 {
     break-after: avoid;
