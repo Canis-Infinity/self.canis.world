@@ -175,8 +175,8 @@
   }
   .record-card [data-slot="badge"] {
     color: var(--badge-ink, #334155) !important;
-    background: var(--score-color, #f1f5f9) !important;
-    border: 1px solid var(--score-color, #d8dee7);
+    background: var(--badge-bg, #f1f5f9) !important;
+    border: 1px solid var(--badge-bg, #d8dee7);
     font-size: 8pt;
     height: auto;
     padding: 1mm 2mm;

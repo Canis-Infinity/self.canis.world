@@ -1,13 +1,6 @@
 import type { CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
-import {
-  type Entry,
-  moodScore,
-  scoreColor,
-  summary,
-  details,
-  meals,
-} from "@/lib/records";
+import { type Entry, moodScore, summary, details, meals } from "@/lib/records";
 
 export function RecordContent({ record: r }: { record: Entry }) {
   const fields: [string, string | undefined][] = [];
@@ -53,14 +46,43 @@ export function RecordContent({ record: r }: { record: Entry }) {
         : null;
   const yesNo = (value: boolean | undefined) =>
     value == null ? "未填寫" : value ? "有" : "無";
-  const badgeStyle = (color: string | undefined) =>
-    color
-      ? ({
-          backgroundColor: color,
-          color: "#fff",
-          "--score-color": color,
-          "--badge-ink": "#fff",
-        } as CSSProperties)
+  const badgeTone = (value: number) => {
+    if (value <= 2)
+      return {
+        classes: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+        bg: "#fef2f2",
+        ink: "#b91c1c",
+      };
+    if (value <= 4)
+      return {
+        classes:
+          "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+        bg: "#fff7ed",
+        ink: "#c2410c",
+      };
+    if (value <= 6)
+      return {
+        classes:
+          "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+        bg: "#fffbeb",
+        ink: "#b45309",
+      };
+    if (value <= 8)
+      return {
+        classes: "bg-lime-50 text-lime-700 dark:bg-lime-950 dark:text-lime-300",
+        bg: "#f7fee7",
+        ink: "#4d7c0f",
+      };
+    return {
+      classes:
+        "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
+      bg: "#f0fdf4",
+      ink: "#15803d",
+    };
+  };
+  const badgeStyle = (tone: ReturnType<typeof badgeTone> | undefined) =>
+    tone
+      ? ({ "--badge-bg": tone.bg, "--badge-ink": tone.ink } as CSSProperties)
       : undefined;
   const moodBadges =
     r.kind === "mood"
@@ -68,7 +90,7 @@ export function RecordContent({ record: r }: { record: Entry }) {
           {
             label: "心情指數",
             value: moodScore(r.data),
-            color: scoreColor(moodScore(r.data)),
+            color: badgeTone(moodScore(r.data)),
           },
           {
             label: "自傷傾向",
@@ -76,7 +98,7 @@ export function RecordContent({ record: r }: { record: Entry }) {
             color:
               r.data.selfHarmUrge == null
                 ? undefined
-                : scoreColor(10 - r.data.selfHarmUrge * 0.9),
+                : badgeTone(10 - r.data.selfHarmUrge * 0.9),
           },
           {
             label: "自殺傾向",
@@ -84,17 +106,17 @@ export function RecordContent({ record: r }: { record: Entry }) {
             color:
               r.data.suicideUrge == null
                 ? undefined
-                : scoreColor(10 - r.data.suicideUrge * 0.9),
+                : badgeTone(10 - r.data.suicideUrge * 0.9),
           },
           {
             label: "自傷行為",
             value: yesNo(r.data.selfHarmed),
-            color: r.data.selfHarmed ? "#9F0712" : undefined,
+            color: r.data.selfHarmed ? badgeTone(1) : undefined,
           },
           {
             label: "自殺行為",
             value: yesNo(r.data.suicideAttempted),
-            color: r.data.suicideAttempted ? "#9F0712" : undefined,
+            color: r.data.suicideAttempted ? badgeTone(1) : undefined,
           },
         ]
       : [];
@@ -110,7 +132,7 @@ export function RecordContent({ record: r }: { record: Entry }) {
             <Badge
               key={label}
               variant="outline"
-              className="h-auto gap-2 px-2.5 py-1 text-xs"
+              className={`h-auto gap-2 px-2.5 py-1 text-xs ${color ? `border-transparent ${color.classes}` : ""}`}
               style={badgeStyle(color)}
             >
               <span className="font-normal">{label}</span>
@@ -123,8 +145,8 @@ export function RecordContent({ record: r }: { record: Entry }) {
         <div className="flex flex-wrap items-center gap-2">
           {score !== null && (
             <Badge
-              className="h-auto px-2.5 py-1"
-              style={badgeStyle(scoreColor(score))}
+              className={`h-auto px-2.5 py-1 ${badgeTone(score).classes}`}
+              style={badgeStyle(badgeTone(score))}
             >
               食慾 {score}
             </Badge>
