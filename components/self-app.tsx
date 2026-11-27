@@ -503,7 +503,10 @@ export function SelfApp({
                     },
                     {
                       label: "平均心情",
-                      value: moodAverage === "—" ? "—" : `${moodAverage} / 10`,
+                      value:
+                        view === "dashboard" || moodAverage === "—"
+                          ? moodAverage
+                          : `${moodAverage} / 10`,
                       unit: `${stats?.moodCount || 0} 筆紀錄`,
                       icon: Heart,
                     },
@@ -516,8 +519,8 @@ export function SelfApp({
                     {
                       label: "平均食慾",
                       value:
-                        appetiteAverage === "—"
-                          ? "—"
+                        view === "dashboard" || appetiteAverage === "—"
+                          ? appetiteAverage
                           : `${appetiteAverage} / 10`,
                       unit: `${stats?.appetiteCount || 0} 筆紀錄`,
                       icon: Utensils,
