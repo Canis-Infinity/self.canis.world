@@ -198,49 +198,6 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  [data-record-kind="mood"] {
-    --report-accent: #9d3158;
-  }
-  [data-record-kind="sleep"] {
-    --report-accent: #4f46a0;
-  }
-  [data-record-kind="medication"] {
-    --report-accent: #1e6486;
-  }
-  [data-record-kind="reflection"] {
-    --report-accent: #826121;
-  }
-  [data-record-kind="diet"] {
-    --report-accent: #23704e;
-  }
-  [data-record-kind="body"] {
-    --report-accent: #8c4931;
-  }
-  [data-record-kind="appointment"] {
-    --report-accent: #334c96;
-  }
-  .report-section > h2 {
-    color: var(--report-accent);
-    border-color: color-mix(in srgb, var(--report-accent) 35%, white);
-  }
-  .record-card [data-slot="card-header"] svg {
-    color: var(--report-accent);
-  }
-  .record-card {
-    border-left: 2pt solid var(--report-accent, #cbd5e1) !important;
-  }
-  #main .report-stats [data-slot="card"]:nth-child(1) {
-    background: #f1f5f9 !important;
-  }
-  #main .report-stats [data-slot="card"]:nth-child(2) {
-    background: #fff1f5 !important;
-  }
-  #main .report-stats [data-slot="card"]:nth-child(3) {
-    background: #f3f0ff !important;
-  }
-  #main .report-stats [data-slot="card"]:nth-child(4) {
-    background: #edf8f0 !important;
-  }
   #main .report-risk-score {
     color: var(--risk-color) !important;
     background: color-mix(in srgb, var(--risk-color) 9%, white);
