@@ -154,12 +154,15 @@ export function Login({
               {busy ? "登入中…" : "登入"}
             </Button>
           </form>
-          <Link
-            href="/register"
-            className="block text-sm text-primary underline"
-          >
-            還沒有帳號？申請註冊
-          </Link>
+          <p className="text-sm text-muted-foreground">
+            還沒有帳號？{" "}
+            <Link
+              href="/register"
+              className="text-primary underline underline-offset-4"
+            >
+              申請註冊
+            </Link>
+          </p>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="size-4" />
             帳號需經核准，紀錄僅供本人存取。

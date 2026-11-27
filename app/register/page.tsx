@@ -125,9 +125,15 @@ export default function Page() {
             </form>
           </>
         )}
-        <Link href="/login" className="block text-sm text-primary underline">
-          返回登入
-        </Link>
+        <p className="text-sm text-muted-foreground">
+          已經有帳號？{" "}
+          <Link
+            href="/login"
+            className="text-primary underline underline-offset-4"
+          >
+            登入
+          </Link>
+        </p>
         <p className="text-sm text-muted-foreground">
           每個帳號的紀錄皆獨立保存，僅供本人存取。
         </p>
