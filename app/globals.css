@@ -149,7 +149,7 @@
     display: block;
     break-inside: avoid;
     box-shadow: none;
-    border: 1px solid #d8dee7 !important;
+    border: 1px solid #d8dee7;
     border-radius: 2mm;
     padding: 3.5mm 4mm;
     margin-top: 0;
@@ -226,8 +226,8 @@
   .record-card [data-slot="card-header"] svg {
     color: var(--report-accent);
   }
-  .record-card {
-    border-left: 2pt solid var(--report-accent, #cbd5e1) !important;
+  .record-card.border-l-4 {
+    border-left-width: 4px;
   }
   #main .report-risk-score {
     color: var(--risk-color) !important;
