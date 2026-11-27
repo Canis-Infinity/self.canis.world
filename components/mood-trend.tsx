@@ -218,25 +218,27 @@ export function MoodTrend({
             <p className="mt-2 text-xs text-muted-foreground">
               僅統計篩選區間內的紀錄；未記錄不視為 0。週從星期日開始。
             </p>
-            <table className="sr-only">
-              <caption>情緒、自傷、自殺、食慾平均分數與紀錄筆數</caption>
-              <tbody>
-                {points.map((point) => (
-                  <tr key={point.key}>
-                    <th>{point.key}</th>
-                    {(
-                      ["score", "selfHarm", "suicide", "appetite"] as const
-                    ).map((key) => (
-                      <td key={key}>
-                        {config[key].label}：
-                        {point[key]?.toFixed(1) ?? "未記錄"}
-                      </td>
-                    ))}
-                    <td>{point.count} 筆</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="sr-only">
+              <table>
+                <caption>情緒、自傷、自殺、食慾平均分數與紀錄筆數</caption>
+                <tbody>
+                  {points.map((point) => (
+                    <tr key={point.key}>
+                      <th>{point.key}</th>
+                      {(
+                        ["score", "selfHarm", "suicide", "appetite"] as const
+                      ).map((key) => (
+                        <td key={key}>
+                          {config[key].label}：
+                          {point[key]?.toFixed(1) ?? "未記錄"}
+                        </td>
+                      ))}
+                      <td>{point.count} 筆</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         ) : (
           <p className="flex h-64 items-center justify-center text-muted-foreground">

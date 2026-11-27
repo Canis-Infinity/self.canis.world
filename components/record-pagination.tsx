@@ -69,8 +69,8 @@ export function RecordPagination({
         {total} 筆
       </p>
       {pages > 1 && (
-        <Pagination aria-label="紀錄分頁" className="mx-0 w-auto shrink-0">
-          <PaginationContent>
+        <Pagination aria-label="紀錄分頁" className="mx-0 w-auto max-w-full">
+          <PaginationContent className="flex-wrap justify-center">
             <PaginationItem>
               <PaginationPrevious
                 {...props(page - 1)}
