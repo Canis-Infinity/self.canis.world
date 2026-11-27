@@ -1,14 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import {
-  format,
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { format, startOfDay, endOfDay, isSameDay } from "date-fns";
 import {
   Card,
   CardHeader,
@@ -52,12 +44,16 @@ const config = {
   appetite: { label: "食慾", color: "#14b8a6" },
 } satisfies ChartConfig;
 export function MoodTrend({
-  anchor,
+  rangeFrom,
+  rangeTo,
+  search,
   period,
   onPeriodChange,
   revision,
 }: {
-  anchor: Date;
+  rangeFrom: Date;
+  rangeTo: Date;
+  search: string;
   period: TrendPeriod;
   onPeriodChange: (value: TrendPeriod) => void;
   revision: number;
@@ -66,18 +62,9 @@ export function MoodTrend({
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false),
     [retry, setRetry] = useState(0);
-  const start =
-    period === "day"
-      ? startOfDay(anchor)
-      : period === "week"
-        ? startOfWeek(anchor, { weekStartsOn: 0 })
-        : startOfMonth(anchor);
-  const end =
-    period === "day"
-      ? endOfDay(anchor)
-      : period === "week"
-        ? endOfWeek(anchor, { weekStartsOn: 0 })
-        : endOfMonth(anchor);
+  const start = startOfDay(rangeFrom),
+    end = endOfDay(rangeTo);
+  const hourly = period === "day" && isSameDay(start, end);
   const from = start.toISOString(),
     to = end.toISOString();
   useEffect(() => {
@@ -88,6 +75,7 @@ export function MoodTrend({
       from,
       to,
       period,
+      q: search,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     api<{ points: Point[] }>(`/mood-trend?${params}`, { signal: abort.signal })
@@ -114,7 +102,7 @@ export function MoodTrend({
         if (!abort.signal.aborted) setLoading(false);
       });
     return () => abort.abort();
-  }, [from, to, period, revision, retry]);
+  }, [from, to, search, period, revision, retry]);
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -141,8 +129,15 @@ export function MoodTrend({
         </div>
         <CardDescription>
           {format(start, "yyyy/MM/dd")}
-          {period !== "day" && ` – ${format(end, "yyyy/MM/dd")}`} ·{" "}
-          {period === "day" ? "每小時" : "每日"}平均分數 · 自傷、自殺為傾向分數
+          {!isSameDay(start, end) && ` – ${format(end, "yyyy/MM/dd")}`} ·{" "}
+          {hourly
+            ? "每小時"
+            : period === "day"
+              ? "每日"
+              : period === "week"
+                ? "每週"
+                : "每月"}
+          平均分數 · 自傷、自殺為傾向分數
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -174,9 +169,11 @@ export function MoodTrend({
                   axisLine={false}
                   minTickGap={24}
                   tickFormatter={(key: string) =>
-                    period === "day"
+                    hourly
                       ? `${key.slice(11)}:00`
-                      : key.slice(5).replace("-", "/")
+                      : period === "month"
+                        ? key.slice(0, 7).replace("-", "/")
+                        : key.slice(5).replace("-", "/")
                   }
                 />
                 <YAxis
@@ -189,8 +186,7 @@ export function MoodTrend({
                   content={
                     <ChartTooltipContent
                       labelFormatter={(key) =>
-                        String(key).replace("T", " ") +
-                        (period === "day" ? ":00" : "")
+                        String(key).replace("T", " ") + (hourly ? ":00" : "")
                       }
                     />
                   }
@@ -220,7 +216,7 @@ export function MoodTrend({
               </ComposedChart>
             </ChartContainer>
             <p className="mt-2 text-xs text-muted-foreground">
-              未記錄的項目不視為 0；折線連接已記錄的平均分數。
+              僅統計篩選區間內的紀錄；未記錄不視為 0。週從星期日開始。
             </p>
             <table className="sr-only">
               <caption>情緒、自傷、自殺、食慾平均分數與紀錄筆數</caption>

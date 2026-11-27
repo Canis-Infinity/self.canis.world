@@ -61,13 +61,13 @@ import {
   dayKey,
   dateLabel,
   summary,
-  details,
   type Kind,
   type Entry,
 } from "@/lib/records";
 import { ReportExport } from "./report-export";
 import { MoodTrend, type TrendPeriod } from "./mood-trend";
 import { ImageGallery } from "./image-gallery";
+import { RecordContent } from "./record-content";
 import { EntryEditor } from "./entry-editor";
 import { DateRangeField } from "./date-range-field";
 type View = "dashboard" | "report" | Kind;
@@ -303,19 +303,7 @@ export function SelfApp({
                   {dateLabel(r.occurredAt, r.kind === "appointment")}
                 </time>
               </div>
-              <CardTitle>
-                {r.kind === "appointment" ? r.title : categories[r.kind].label}
-              </CardTitle>
-              {rating !== null && (
-                <Badge
-                  style={{
-                    backgroundColor: scoreColor(rating),
-                    color: "#FFFFFF",
-                  }}
-                >
-                  {rating} / 10
-                </Badge>
-              )}
+              {r.kind === "appointment" && <CardTitle>{r.title}</CardTitle>}
             </div>
             {!print && (
               <div className="flex gap-1 print:hidden">
@@ -340,17 +328,7 @@ export function SelfApp({
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="whitespace-pre-wrap break-words">{summary(r)}</p>
-          {details(r) && (
-            <p className="whitespace-pre-wrap break-words text-muted-foreground">
-              {details(r)}
-            </p>
-          )}
-          {r.note && (
-            <p className="whitespace-pre-wrap break-words border-t pt-3">
-              {r.note}
-            </p>
-          )}
+          <RecordContent record={r} />
           {r.kind === "appointment" && !print && (
             <Button
               variant="outline"
@@ -553,7 +531,9 @@ export function SelfApp({
               <>
                 <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
                   <MoodTrend
-                    anchor={to}
+                    rangeFrom={from}
+                    rangeTo={to}
+                    search={search}
                     period={trendPeriod}
                     onPeriodChange={setTrendPeriod}
                     revision={revision + refreshTick}
