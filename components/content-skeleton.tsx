@@ -81,7 +81,12 @@ export function ContentSkeleton({
                   <Skeleton className="h-8 w-8" />
                   <Skeleton className="h-8 w-8" />
                 </div>
-                <Skeleton className="h-56 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <div className="flex justify-center gap-4">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <Skeleton key={i} className="h-4 w-12" />
+                  ))}
+                </div>
               </CardContent>
             </Card>
             <Card>

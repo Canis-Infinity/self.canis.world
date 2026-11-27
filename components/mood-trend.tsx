@@ -8,8 +8,6 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
-  addDays,
-  addHours,
 } from "date-fns";
 import {
   Card,
@@ -22,8 +20,37 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  ComposedChart,
+  Line,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from "recharts";
 export type TrendPeriod = "day" | "week" | "month";
-type Point = { key: string; score: number; count: number };
+type Point = {
+  key: string;
+  score: number | null;
+  selfHarm: number | null;
+  suicide: number | null;
+  appetite: number | null;
+  count: number;
+};
+const config = {
+  score: { label: "情緒", color: "#3b82f6" },
+  selfHarm: { label: "自傷", color: "#f59e0b" },
+  suicide: { label: "自殺", color: "#f43f5e" },
+  appetite: { label: "食慾", color: "#14b8a6" },
+} satisfies ChartConfig;
 export function MoodTrend({
   anchor,
   period,
@@ -64,7 +91,22 @@ export function MoodTrend({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     api<{ points: Point[] }>(`/mood-trend?${params}`, { signal: abort.signal })
-      .then((result) => setPoints(result.points))
+      .then((result) => {
+        if (!abort.signal.aborted)
+          setPoints(
+            result.points.map((point) => ({
+              ...point,
+              ...Object.fromEntries(
+                (["score", "selfHarm", "suicide", "appetite"] as const).map(
+                  (key) => [
+                    key,
+                    point[key] == null ? null : Number(point[key].toFixed(1)),
+                  ],
+                ),
+              ),
+            })),
+          );
+      })
       .catch(() => {
         if (!abort.signal.aborted) setError(true);
       })
@@ -73,49 +115,19 @@ export function MoodTrend({
       });
     return () => abort.abort();
   }, [from, to, period, revision, retry]);
-  const dates: Date[] = [];
-  for (
-    let date = start;
-    date <= end;
-    date = period === "day" ? addHours(date, 1) : addDays(date, 1)
-  )
-    dates.push(date);
-  const slots = dates.map((date, i) => {
-    const key = format(
-      date,
-      period === "day" ? "yyyy-MM-dd'T'HH" : "yyyy-MM-dd",
-    );
-    const point = points.find((p) => p.key === key);
-    return {
-      date,
-      point,
-      x: 40 + (i * 520) / Math.max(1, dates.length - 1),
-      y: point ? 190 - (point.score - 1) * 17 : 0,
-    };
-  });
-  const segments: string[][] = [];
-  let segment: string[] = [];
-  for (const slot of slots) {
-    if (slot.point) segment.push(`${slot.x},${slot.y}`);
-    else if (segment.length) {
-      segments.push(segment);
-      segment = [];
-    }
-  }
-  if (segment.length) segments.push(segment);
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>心情的變化</CardTitle>
+          <CardTitle>狀態的變化</CardTitle>
           <Tabs
             value={period}
             onValueChange={(value) => onPeriodChange(value as TrendPeriod)}
           >
-            <TabsList variant="line" aria-label="心情圖表期間">
+            <TabsList variant="line" aria-label="狀態圖表期間">
               {(
                 [
-                  ["day", "當日"],
+                  ["day", "日"],
                   ["week", "週"],
                   ["month", "月"],
                 ] as const
@@ -130,115 +142,100 @@ export function MoodTrend({
         <CardDescription>
           {format(start, "yyyy/MM/dd")}
           {period !== "day" && ` – ${format(end, "yyyy/MM/dd")}`} ·{" "}
-          {period === "day" ? "每小時" : "每日"}平均心情
+          {period === "day" ? "每小時" : "每日"}平均分數 · 自傷、自殺為傾向分數
         </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <Skeleton className="h-56 w-full" />
+          <Skeleton className="h-64 w-full" />
         ) : error ? (
-          <div className="flex h-56 flex-col items-center justify-center gap-3">
-            <p>暫時無法讀取心情圖表</p>
+          <div className="flex h-64 flex-col items-center justify-center gap-3">
+            <p>暫時無法讀取狀態圖表</p>
             <Button variant="outline" onClick={() => setRetry((n) => n + 1)}>
               重新載入
             </Button>
           </div>
         ) : points.length ? (
           <>
-            <svg
-              viewBox="0 0 600 230"
-              role="img"
-              aria-label="心情趨勢圖，分數 1 至 10，空白代表未記錄"
-              className="h-56 w-full overflow-visible"
+            <ChartContainer
+              config={config}
+              className="h-64 w-full"
+              aria-label="情緒、自傷、自殺、食慾趨勢圖"
             >
-              {[1, 4, 7, 10].map((score) => (
-                <g key={score}>
-                  <line
-                    x1="40"
-                    x2="560"
-                    y1={190 - (score - 1) * 17}
-                    y2={190 - (score - 1) * 17}
-                    stroke="currentColor"
-                    className="text-border"
-                  />
-                  <text
-                    x="26"
-                    y={195 - (score - 1) * 17}
-                    textAnchor="end"
-                    fill="currentColor"
-                    className="text-muted-foreground"
-                    fontSize="12"
-                  >
-                    {score}
-                  </text>
-                </g>
-              ))}
-              {segments.map((points, i) => (
-                <polyline
-                  key={i}
-                  points={points.join(" ")}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
+              <ComposedChart
+                accessibilityLayer
+                data={points}
+                margin={{ top: 12, right: 12, left: -20 }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="key"
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={24}
+                  tickFormatter={(key: string) =>
+                    period === "day"
+                      ? `${key.slice(11)}:00`
+                      : key.slice(5).replace("-", "/")
+                  }
                 />
-              ))}
-              {slots.map(({ date, point, x, y }, i) => (
-                <g key={i}>
-                  {point && (
-                    <>
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r="4"
-                        fill="var(--background)"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="text-primary"
-                      >
-                        <title>
-                          {format(date, period === "day" ? "HH:mm" : "MM/dd")}：
-                          {point.score.toFixed(1)} 分（{point.count} 筆）
-                        </title>
-                      </circle>
-                      {(dates.length <= 7 || points.length <= 7) && (
-                        <text
-                          x={x}
-                          y={y - 12}
-                          textAnchor="middle"
-                          fill="currentColor"
-                          fontSize="13"
-                        >
-                          {Number(point.score.toFixed(1))}
-                        </text>
-                      )}
-                    </>
-                  )}
-                  {(i === 0 ||
-                    i === dates.length - 1 ||
-                    i % (period === "day" ? 4 : period === "week" ? 1 : 5) ===
-                      0) && (
-                    <text
-                      x={x}
-                      y="220"
-                      textAnchor="middle"
-                      fill="currentColor"
-                      className="text-muted-foreground"
-                      fontSize="12"
-                    >
-                      {format(date, period === "day" ? "HH:mm" : "MM/dd")}
-                    </text>
-                  )}
-                </g>
-              ))}
-            </svg>
+                <YAxis
+                  domain={[0, 10]}
+                  ticks={[0, 2, 4, 6, 8, 10]}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(key) =>
+                        String(key).replace("T", " ") +
+                        (period === "day" ? ":00" : "")
+                      }
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Bar
+                  dataKey="appetite"
+                  fill="var(--color-appetite)"
+                  fillOpacity={0.45}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={28}
+                  isAnimationActive={false}
+                />
+                {(["score", "selfHarm", "suicide"] as const).map((key) => (
+                  <Line
+                    key={key}
+                    dataKey={key}
+                    type="linear"
+                    stroke={`var(--color-${key})`}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                ))}
+              </ComposedChart>
+            </ChartContainer>
+            <p className="mt-2 text-xs text-muted-foreground">
+              未記錄的項目不視為 0；折線連接已記錄的平均分數。
+            </p>
             <table className="sr-only">
-              <caption>心情平均分數與紀錄筆數</caption>
+              <caption>情緒、自傷、自殺、食慾平均分數與紀錄筆數</caption>
               <tbody>
                 {points.map((point) => (
                   <tr key={point.key}>
                     <th>{point.key}</th>
-                    <td>{point.score.toFixed(1)}</td>
+                    {(
+                      ["score", "selfHarm", "suicide", "appetite"] as const
+                    ).map((key) => (
+                      <td key={key}>
+                        {config[key].label}：
+                        {point[key]?.toFixed(1) ?? "未記錄"}
+                      </td>
+                    ))}
                     <td>{point.count} 筆</td>
                   </tr>
                 ))}
@@ -246,8 +243,8 @@ export function MoodTrend({
             </table>
           </>
         ) : (
-          <p className="flex h-56 items-center justify-center text-muted-foreground">
-            這段時間還沒有心情紀錄。
+          <p className="flex h-64 items-center justify-center text-muted-foreground">
+            這段時間還沒有情緒或飲食紀錄。
           </p>
         )}
       </CardContent>

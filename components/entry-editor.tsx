@@ -142,24 +142,18 @@ export function EntryEditor({
     label: string,
     low: string,
     high: string,
-    optional = false,
+    min = 1,
   ) {
-    const filled = data[key] !== undefined && data[key] !== "";
-    const value = Number(data[key] ?? (optional ? 0 : 5));
+    const value = Number(data[key] ?? (min === 0 ? 0 : 5));
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <Label id={`${key}-label`}>
-            {label}
-            {!optional && " *"}
-          </Label>
-          <Badge variant="secondary">
-            {optional && !filled ? "未填寫" : `${value} / 10`}
-          </Badge>
+          <Label id={`${key}-label`}>{label} *</Label>
+          <Badge variant="secondary">{value} / 10</Badge>
         </div>
         <Slider
           id={key}
-          min={optional ? 0 : 1}
+          min={min}
           max={10}
           step={1}
           value={[value]}
@@ -170,17 +164,6 @@ export function EntryEditor({
           aria-labelledby={`${key}-label`}
           aria-describedby={`${key}-hint`}
         />
-        {optional && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => set(key, filled ? "" : "0")}
-          >
-            {filled ? "清除分數" : "記錄為 0（沒有）"}
-          </Button>
-        )}
         <div
           id={`${key}-hint`}
           className="flex justify-between gap-4 text-sm text-muted-foreground"
@@ -249,12 +232,8 @@ export function EntryEditor({
         case "mood":
           values = {
             score: Number(data.score ?? 5),
-            selfHarmUrge: data.selfHarmUrge
-              ? Number(data.selfHarmUrge)
-              : undefined,
-            suicideUrge: data.suicideUrge
-              ? Number(data.suicideUrge)
-              : undefined,
+            selfHarmUrge: Number(data.selfHarmUrge ?? 0),
+            suicideUrge: Number(data.suicideUrge ?? 0),
             selfHarmed: data.selfHarmed
               ? data.selfHarmed === "true"
               : undefined,
@@ -426,20 +405,8 @@ export function EntryEditor({
               {kind === "mood" && (
                 <>
                   {tenPoint("score", "此刻心情", "很低落", "很好")}
-                  {tenPoint(
-                    "selfHarmUrge",
-                    "自傷傾向",
-                    "沒有",
-                    "非常強烈",
-                    true,
-                  )}
-                  {tenPoint(
-                    "suicideUrge",
-                    "自殺傾向",
-                    "沒有",
-                    "非常強烈",
-                    true,
-                  )}
+                  {tenPoint("selfHarmUrge", "自傷傾向", "沒有", "非常強烈", 0)}
+                  {tenPoint("suicideUrge", "自殺傾向", "沒有", "非常強烈", 0)}
                   <p className="text-sm text-muted-foreground">
                     以下記錄這次日誌時段內的情況，未填寫不代表沒有。
                   </p>

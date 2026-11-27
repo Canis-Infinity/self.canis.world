@@ -4,13 +4,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Keep modal layers stable when the enter animation releases its transform.
-   This also avoids repainting the blurred backdrop at the animation boundary. */
+/* Static modal layers avoid blur/zoom compositor flicker while idle. */
 [data-slot="dialog-overlay"],
 [data-slot="alert-dialog-overlay"],
 [data-slot="dialog-content"],
 [data-slot="alert-dialog-content"] {
-  will-change: transform, opacity;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto;
+}
+[data-slot="dialog-overlay"],
+[data-slot="alert-dialog-overlay"] {
+  backdrop-filter: none !important;
+  background-color: rgb(0 0 0 / 40%);
 }
 
 @theme inline {
