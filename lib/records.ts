@@ -138,7 +138,15 @@ export function details(record: EntryInput) {
         .filter(Boolean)
         .join("\n");
     case "mood":
-      return record.data.trigger && `相關事件：${record.data.trigger}`;
+      return [
+        record.data.trigger && `相關事件：${record.data.trigger}`,
+        `自傷傾向：${record.data.selfHarmUrge == null ? "未填寫" : `${record.data.selfHarmUrge} / 10`}`,
+        `自殺傾向：${record.data.suicideUrge == null ? "未填寫" : `${record.data.suicideUrge} / 10`}`,
+        `是否曾自傷：${record.data.selfHarmed == null ? "未填寫" : record.data.selfHarmed ? "有" : "無"}`,
+        `是否曾嘗試自殺：${record.data.suicideAttempted == null ? "未填寫" : record.data.suicideAttempted ? "有" : "無"}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
     case "sleep":
       return `${dateLabel(record.data.bedtime)} 入睡 → ${dateLabel(record.data.wakeAt)} 起床`;
     case "medication":

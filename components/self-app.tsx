@@ -66,6 +66,8 @@ import {
   type Entry,
 } from "@/lib/records";
 import { ReportExport } from "./report-export";
+import { MoodTrend, type TrendPeriod } from "./mood-trend";
+import { ImageGallery } from "./image-gallery";
 import { EntryEditor } from "./entry-editor";
 import { DateRangeField } from "./date-range-field";
 type View = "dashboard" | "report" | Kind;
@@ -97,6 +99,8 @@ export function SelfApp({
   const [to, setTo] = useState(() =>
     reportDate ? new Date(`${reportDate}T12:00:00`) : new Date(),
   );
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>("day");
+  const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [includeImages, setIncludeImages] = useState(false);
@@ -114,7 +118,6 @@ export function SelfApp({
     sleepAverage: number | null;
     appetiteCount: number;
     appetiteAverage: number | null;
-    moods: Entry[];
     nextVisit: Entry | null;
   } | null>(null);
   const [exportRecords, setExportRecords] = useState<Entry[] | null>(null);
@@ -146,55 +149,58 @@ export function SelfApp({
       q: view === "appointment" ? "" : search,
     }).toString();
   }, [view, from, to, search, month]);
-  const load = useCallback(async () => {
-    activeRequest.current?.abort();
-    const controller = new AbortController();
-    activeRequest.current = controller;
-    const id = ++requestId.current;
-    setLoading(true);
-    setError("");
-    try {
-      if (view === "appointment") {
-        const entries = await getEntries(controller.signal, params);
-        if (id === requestId.current) setRecords(entries);
-      } else {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const extras = new URLSearchParams({
-          page: String(page),
-          limit: String(pageSize),
-          ...(view === "dashboard" || view === "report"
-            ? {
-                stats: "1",
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                today: today.toISOString(),
-              }
-            : {}),
-        });
-        const result = await api<{
-          entries: Entry[];
-          total: number;
-          page: number;
-          pages: number;
-          stats?: typeof stats;
-        }>(`/entries?${params}&${extras}`, { signal: controller.signal });
-        if (id !== requestId.current) return;
-        setRecords(result.entries);
-        setTotal(result.total);
-        setPages(result.pages);
-        setPage(result.page);
-        setStats(result.stats || null);
+  const load = useCallback(
+    async (background = false) => {
+      activeRequest.current?.abort();
+      const controller = new AbortController();
+      activeRequest.current = controller;
+      const id = ++requestId.current;
+      if (!background) setLoading(true);
+      setError("");
+      try {
+        if (view === "appointment") {
+          const entries = await getEntries(controller.signal, params);
+          if (id === requestId.current) setRecords(entries);
+        } else {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const extras = new URLSearchParams({
+            page: String(page),
+            limit: String(pageSize),
+            ...(view === "dashboard" || view === "report"
+              ? {
+                  stats: "1",
+                  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  today: today.toISOString(),
+                }
+              : {}),
+          });
+          const result = await api<{
+            entries: Entry[];
+            total: number;
+            page: number;
+            pages: number;
+            stats?: typeof stats;
+          }>(`/entries?${params}&${extras}`, { signal: controller.signal });
+          if (id !== requestId.current) return;
+          setRecords(result.entries);
+          setTotal(result.total);
+          setPages(result.pages);
+          setPage(result.page);
+          setStats(result.stats || null);
+        }
+      } catch (e) {
+        if (controller.signal.aborted || id !== requestId.current) return;
+        if (e instanceof ApiError && e.status === 401) {
+          expire();
+          setRecords([]);
+        } else setError(e instanceof Error ? e.message : "無法讀取紀錄");
+      } finally {
+        if (id === requestId.current) setLoading(false);
       }
-    } catch (e) {
-      if (controller.signal.aborted || id !== requestId.current) return;
-      if (e instanceof ApiError && e.status === 401) {
-        expire();
-        setRecords([]);
-      } else setError(e instanceof Error ? e.message : "無法讀取紀錄");
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [expire, view, params, page, pageSize]);
+    },
+    [expire, view, params, page, pageSize],
+  );
   useEffect(() => {
     void load();
     return () => {
@@ -207,7 +213,6 @@ export function SelfApp({
   const filtered = exportRecords || records;
   const appointments = records;
   const nextVisit = stats?.nextVisit;
-  const moods = stats?.moods || [];
   const moodAverage =
     stats?.moodAverage == null ? "—" : stats.moodAverage.toFixed(1);
   const sleepAverage =
@@ -236,7 +241,8 @@ export function SelfApp({
       });
       setDeleting(null);
       toast.add({ title: "紀錄已刪除", type: "success" });
-      await load();
+      await load(true);
+      setRevision((value) => value + 1);
     } catch (e) {
       toast.add({
         title: "無法刪除",
@@ -355,24 +361,11 @@ export function SelfApp({
             </Button>
           )}
           {r.images.length > 0 && (!print || includeImages) && (
-            <div className="flex flex-wrap gap-3">
-              {r.images.map((id, i) => (
-                <a
-                  key={id}
-                  href={`/api/self/images/${id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`查看 ${r.title} 附件 ${i + 1}`}
-                >
-                  <img
-                    src={`/api/self/images/${id}`}
-                    alt={`${r.title} 附件 ${i + 1}`}
-                    loading={print ? "eager" : "lazy"}
-                    className="h-28 w-28 rounded-lg border object-cover print:h-auto print:w-56 print:object-contain"
-                  />
-                </a>
-              ))}
-            </div>
+            <ImageGallery
+              images={r.images}
+              title={r.title}
+              print={!!exportRecords}
+            />
           )}
         </CardContent>
       </Card>
@@ -482,7 +475,7 @@ export function SelfApp({
               <CardDescription>{error}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={load}>
+              <Button onClick={() => void load()}>
                 <RefreshCw />
                 重新載入
               </Button>
@@ -556,50 +549,12 @@ export function SelfApp({
             {view === "dashboard" && (
               <>
                 <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>心情的變化</CardTitle>
-                      <CardDescription>最近 14 筆情緒紀錄</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {moods.length ? (
-                        <div className="flex h-44 items-end gap-2 overflow-x-auto pt-5">
-                          {[...moods]
-                            .slice(0, 14)
-                            .reverse()
-                            .map((r) => (
-                              <div
-                                className="flex min-w-8 flex-1 flex-col items-center gap-2"
-                                key={r.id}
-                              >
-                                <span className="text-sm">
-                                  {r.kind === "mood" &&
-                                    `${moodScore(r.data)} 分`}
-                                </span>
-                                <div
-                                  title={`${dateLabel(r.occurredAt)}：${summary(r)}`}
-                                  className="w-full max-w-8 rounded-t bg-primary/75"
-                                  style={{
-                                    height: `${r.kind === "mood" ? moodScore(r.data) * 12 : 0}px`,
-                                    backgroundColor:
-                                      r.kind === "mood"
-                                        ? scoreColor(moodScore(r.data))
-                                        : undefined,
-                                  }}
-                                />
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(r.occurredAt).getDate()}日
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      ) : (
-                        <p className="py-12 text-center text-muted-foreground">
-                          寫下第一筆心情後，就能看見變化。
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <MoodTrend
+                    anchor={to}
+                    period={trendPeriod}
+                    onPeriodChange={setTrendPeriod}
+                    revision={revision + refreshTick}
+                  />
                   <Card>
                     <CardHeader>
                       <CardTitle>下次回診</CardTitle>
@@ -735,7 +690,10 @@ export function SelfApp({
           record={editor.record}
           initialDate={editor.date}
           onClose={() => setEditor(null)}
-          onSaved={load}
+          onSaved={async () => {
+            await load(true);
+            setRevision((value) => value + 1);
+          }}
           onDelete={
             editor.record
               ? () => {

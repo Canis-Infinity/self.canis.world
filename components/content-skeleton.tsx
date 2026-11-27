@@ -69,20 +69,19 @@ export function ContentSkeleton({
       ) : (
         <>
           <StatsSkeleton />
-          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
             <Card>
               <CardHeader>
                 <Skeleton className="h-5 w-36" />
                 <Skeleton className="mt-2 h-4 w-52" />
               </CardHeader>
-              <CardContent className="flex h-40 items-end gap-3">
-                {[40, 65, 50, 90, 70, 100, 60, 80].map((h, i) => (
-                  <Skeleton
-                    key={i}
-                    className="flex-1 rounded-b-none"
-                    style={{ height: `${h}%` }}
-                  />
-                ))}
+              <CardContent className="space-y-5">
+                <div className="flex justify-end gap-2">
+                  <Skeleton className="h-8 w-12" />
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+                <Skeleton className="h-56 w-full" />
               </CardContent>
             </Card>
             <Card>

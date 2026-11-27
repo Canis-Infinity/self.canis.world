@@ -1,7 +1,7 @@
 "use client";
 import { z } from "zod";
 import { useState, type FormEvent } from "react";
-import { Upload, X, Activity } from "lucide-react";
+import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -21,17 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  FileUpload,
-  FileUploadDropzone,
-  FileUploadTrigger,
-  FileUploadList,
-  FileUploadItem,
-  FileUploadItemPreview,
-  FileUploadItemMetadata,
-  FileUploadItemDelete,
-} from "@/components/ui/file-upload";
+import { ImageAttachments, type Attachment } from "./image-attachments";
 import { toast, Toaster, createToastManager } from "@/components/ui/toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DateTimeField } from "./date-time-field";
@@ -98,8 +90,14 @@ export function EntryEditor({
       (kind === "appointment" ? "身心科回診" : categories[kind].label),
   );
   const [note, setNote] = useState(record?.note || "");
-  const [images, setImages] = useState(record?.images || []);
-  const [files, setFiles] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>(() =>
+    (record?.images || []).map((id, i) => ({
+      key: id,
+      id,
+      name: `照片 ${i + 1}`,
+    })),
+  );
+  const images = attachments.flatMap((a) => (a.id ? [a.id] : []));
   const [busy, setBusy] = useState(false);
   const [formToast] = useState(createToastManager);
   const set = (key: string, value: string) =>
@@ -139,17 +137,29 @@ export function EntryEditor({
       </div>
     );
   }
-  function tenPoint(key: string, label: string, low: string, high: string) {
-    const value = Number(data[key] ?? 5);
+  function tenPoint(
+    key: string,
+    label: string,
+    low: string,
+    high: string,
+    optional = false,
+  ) {
+    const filled = data[key] !== undefined && data[key] !== "";
+    const value = Number(data[key] ?? (optional ? 0 : 5));
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <Label id={`${key}-label`}>{label} *</Label>
-          <Badge variant="secondary">{value} / 10</Badge>
+          <Label id={`${key}-label`}>
+            {label}
+            {!optional && " *"}
+          </Label>
+          <Badge variant="secondary">
+            {optional && !filled ? "未填寫" : `${value} / 10`}
+          </Badge>
         </div>
         <Slider
           id={key}
-          min={1}
+          min={optional ? 0 : 1}
           max={10}
           step={1}
           value={[value]}
@@ -160,6 +170,17 @@ export function EntryEditor({
           aria-labelledby={`${key}-label`}
           aria-describedby={`${key}-hint`}
         />
+        {optional && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => set(key, filled ? "" : "0")}
+          >
+            {filled ? "清除分數" : "記錄為 0（沒有）"}
+          </Button>
+        )}
         <div
           id={`${key}-hint`}
           className="flex justify-between gap-4 text-sm text-muted-foreground"
@@ -190,10 +211,18 @@ export function EntryEditor({
       </fieldset>
     );
   }
-  function radio(key: string, label: string, options: Record<string, string>) {
+  function radio(
+    key: string,
+    label: string,
+    options: Record<string, string>,
+    optional = false,
+  ) {
     return (
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium">{label} *</legend>
+        <legend className="text-sm font-medium">
+          {label}
+          {!optional && " *"}
+        </legend>
         <RadioGroup
           aria-label={label}
           value={data[key] || ""}
@@ -220,6 +249,18 @@ export function EntryEditor({
         case "mood":
           values = {
             score: Number(data.score ?? 5),
+            selfHarmUrge: data.selfHarmUrge
+              ? Number(data.selfHarmUrge)
+              : undefined,
+            suicideUrge: data.suicideUrge
+              ? Number(data.suicideUrge)
+              : undefined,
+            selfHarmed: data.selfHarmed
+              ? data.selfHarmed === "true"
+              : undefined,
+            suicideAttempted: data.suicideAttempted
+              ? data.suicideAttempted === "true"
+              : undefined,
             scale: 10,
             ...(record?.kind === "mood" && {
               legacyScore:
@@ -292,20 +333,27 @@ export function EntryEditor({
       );
       if (!parsed.success)
         throw new Error(parsed.error.issues[0]?.message || "請檢查欄位");
-      if (images.length + files.length > 4)
-        throw new Error("每筆紀錄最多 4 張圖片");
-      // Keep successfully uploaded IDs even if a later upload or record save fails.
-      const uploaded = [...images];
-      for (const file of files) {
+      if (attachments.length > 4) throw new Error("每筆紀錄最多 4 張圖片");
+      const uploaded: string[] = [];
+      for (const attachment of attachments) {
+        if (attachment.id) {
+          uploaded.push(attachment.id);
+          continue;
+        }
         const body = new FormData();
-        body.append("file", file);
+        body.append("file", attachment.file!);
         const result = await api<{ id: string }>("/images", {
           method: "POST",
           body,
         });
         uploaded.push(result.id);
-        setImages([...uploaded]);
-        setFiles((old) => old.filter((f) => f !== file));
+        setAttachments((old) =>
+          old.map((a) =>
+            a.key === attachment.key
+              ? { key: a.key, id: result.id, name: a.name }
+              : a,
+          ),
+        );
       }
       await api(record ? `/entries/${record.id}` : "/entries", {
         method: record ? "PUT" : "POST",
@@ -339,7 +387,7 @@ export function EntryEditor({
         if (!open && !busy) onClose();
       }}
     >
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90svh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {record ? "編輯" : "新增"}
@@ -350,7 +398,12 @@ export function EntryEditor({
           </DialogDescription>
         </DialogHeader>
         <Toaster toastManager={formToast}>
-          <form className="space-y-6" onSubmit={save} noValidate>
+          <form
+            id="entry-editor-form"
+            className="min-h-0 space-y-6 overflow-y-auto px-1 py-1"
+            onSubmit={save}
+            noValidate
+          >
             <fieldset disabled={busy} className="space-y-6">
               {kind === "appointment" && (
                 <div className="space-y-2">
@@ -373,6 +426,35 @@ export function EntryEditor({
               {kind === "mood" && (
                 <>
                   {tenPoint("score", "此刻心情", "很低落", "很好")}
+                  {tenPoint(
+                    "selfHarmUrge",
+                    "自傷傾向",
+                    "沒有",
+                    "非常強烈",
+                    true,
+                  )}
+                  {tenPoint(
+                    "suicideUrge",
+                    "自殺傾向",
+                    "沒有",
+                    "非常強烈",
+                    true,
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    以下記錄這次日誌時段內的情況，未填寫不代表沒有。
+                  </p>
+                  {radio(
+                    "selfHarmed",
+                    "是否曾自傷",
+                    { false: "無", true: "有", "": "未填寫" },
+                    true,
+                  )}
+                  {radio(
+                    "suicideAttempted",
+                    "是否曾嘗試自殺",
+                    { false: "無", true: "有", "": "未填寫" },
+                    true,
+                  )}
                   {field("emotions", "感受關鍵字", {
                     placeholder: "例如：焦慮、安心、疲憊",
                     max: 200,
@@ -512,109 +594,45 @@ export function EntryEditor({
                 </div>
               )}
               {kind !== "appointment" && (
-                <div className="space-y-3">
-                  <Label>圖片附件（選填）</Label>
-                  <p className="text-sm text-muted-foreground">
-                    JPEG、PNG、WebP，每張最多 5 MB，每筆最多 4
-                    張。可放藥袋、量測或掛號資訊。
-                  </p>
-                  {images.length > 0 && (
-                    <div className="flex flex-wrap gap-3">
-                      {images.map((id, i) => (
-                        <div key={id} className="relative">
-                          <img
-                            src={`/api/self/images/${id}`}
-                            alt={`附件 ${i + 1}`}
-                            className="h-24 w-24 rounded-lg border object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="icon"
-                            aria-label={`移除附件 ${i + 1}`}
-                            className="absolute top-0 right-0"
-                            onClick={() =>
-                              setImages((old) => old.filter((x) => x !== id))
-                            }
-                          >
-                            <X />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <FileUpload
-                    value={files}
-                    onValueChange={setFiles}
-                    accept="image/jpeg,image/png,image/webp"
-                    maxFiles={4 - images.length}
-                    maxSize={5 * 1024 * 1024}
-                    multiple
-                    disabled={busy || images.length >= 4}
-                    onFileReject={(_, message) =>
-                      formToast.add({
-                        title: "無法加入圖片",
-                        description: message,
-                        type: "error",
-                      })
-                    }
-                  >
-                    <FileUploadDropzone className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-6">
-                      <Upload className="size-5 text-muted-foreground" />
-                      <p className="text-sm">拖放圖片，或從裝置選擇</p>
-                      <FileUploadTrigger
-                        render={<Button type="button" variant="outline" />}
-                      >
-                        選擇圖片
-                      </FileUploadTrigger>
-                    </FileUploadDropzone>
-                    <FileUploadList>
-                      {files.map((file, i) => (
-                        <FileUploadItem
-                          key={`${file.name}-${i}`}
-                          value={file}
-                          className="flex items-center gap-3 rounded-lg border p-3"
-                        >
-                          <FileUploadItemPreview className="size-12" />
-                          <FileUploadItemMetadata className="min-w-0 flex-1" />
-                          <FileUploadItemDelete
-                            render={
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                aria-label={`移除 ${file.name}`}
-                              />
-                            }
-                          >
-                            <X />
-                          </FileUploadItemDelete>
-                        </FileUploadItem>
-                      ))}
-                    </FileUploadList>
-                  </FileUpload>
-                </div>
+                <ImageAttachments
+                  value={attachments}
+                  onChange={setAttachments}
+                  disabled={busy}
+                  onReject={(message) =>
+                    formToast.add({
+                      title: "無法加入圖片",
+                      description: message,
+                      type: "error",
+                    })
+                  }
+                />
               )}
-              <div className="flex justify-end gap-2">
-                {onDelete && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="mr-auto"
-                    onClick={onDelete}
-                  >
-                    刪除紀錄
-                  </Button>
-                )}
-                <Button type="button" variant="outline" onClick={onClose}>
-                  取消
-                </Button>
-                <Button type="submit" disabled={busy}>
-                  {busy ? "儲存中…" : "儲存紀錄"}
-                </Button>
-              </div>
             </fieldset>
           </form>
+          <DialogFooter>
+            {onDelete && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="mr-auto"
+                disabled={busy}
+                onClick={onDelete}
+              >
+                刪除紀錄
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={onClose}
+            >
+              取消
+            </Button>
+            <Button type="submit" form="entry-editor-form" disabled={busy}>
+              {busy ? "儲存中…" : "儲存紀錄"}
+            </Button>
+          </DialogFooter>
         </Toaster>
       </DialogContent>
     </Dialog>
