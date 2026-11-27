@@ -289,6 +289,7 @@ export function SelfApp({
     return (
       <Card
         key={r.id}
+        data-record-kind={r.kind}
         className={`record-card ${longContent ? "record-card-long" : ""} ${rating !== null ? "border-l-4" : ""}`}
         style={
           rating !== null ? { borderLeftColor: scoreColor(rating) } : undefined
@@ -607,12 +608,18 @@ export function SelfApp({
                       .filter((k) => k !== "appointment")
                       .map((k) => {
                         const group = filtered.filter((r) => r.kind === k);
+                        const SectionIcon = categories[k].icon;
                         return (
                           <section
                             key={k}
+                            data-record-kind={k}
                             className={`report-section space-y-4 ${!group.length ? "print:hidden" : ""}`}
                           >
-                            <h2 className="text-xl font-semibold">
+                            <h2 className="flex items-center gap-2 text-xl font-semibold">
+                              <SectionIcon
+                                className="size-4"
+                                aria-hidden="true"
+                              />
                               {categories[k].label}{" "}
                               <span className="text-sm font-normal text-muted-foreground">
                                 {group.length} 筆{!exportRecords && "（本頁）"}

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
   type Entry,
@@ -58,7 +59,13 @@ export function RecordContent({ record: r }: { record: Entry }) {
         <div className="flex flex-wrap items-center gap-2">
           {score !== null && (
             <Badge
-              style={{ backgroundColor: scoreColor(score), color: "#fff" }}
+              style={
+                {
+                  backgroundColor: scoreColor(score),
+                  color: "#fff",
+                  "--score-color": scoreColor(score),
+                } as CSSProperties
+              }
               aria-label={`${r.kind === "mood" ? "心情" : "食慾"} ${score} 分`}
             >
               {r.kind === "diet" && "食慾 "}
@@ -102,7 +109,18 @@ export function RecordContent({ record: r }: { record: Entry }) {
           ].map(([label, value]) => (
             <div key={label} className="flex gap-1.5">
               <dt>{label}</dt>
-              <dd className="font-medium text-foreground">{value}</dd>
+              <dd
+                className={`font-medium text-foreground ${typeof value === "number" ? "report-risk-score" : ""}`}
+                style={
+                  typeof value === "number"
+                    ? ({
+                        "--risk-color": scoreColor(10 - value * 0.9),
+                      } as CSSProperties)
+                    : undefined
+                }
+              >
+                {value}
+              </dd>
             </div>
           ))}
         </dl>
